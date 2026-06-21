@@ -42,7 +42,6 @@ body{
 h1,h2,h3,.serif{font-family:'Source Serif 4',serif;}
 .mono{font-family:'JetBrains Mono',monospace;}
 
-/* ===== HEADER / STAMP / FOLDER TABS ===== */
 header.top{
   background:var(--navy);
   background-image: radial-gradient(circle at 10% -10%, rgba(255,255,255,.06), transparent 40%);
@@ -50,9 +49,7 @@ header.top{
   border-bottom:3px solid var(--copper);
   position:sticky; top:0; z-index:50;
 }
-.top-inner{
-  max-width:1100px; margin:0 auto; padding:14px 18px 0 18px;
-}
+.top-inner{max-width:1100px; margin:0 auto; padding:14px 18px 0 18px;}
 .brand-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px;}
 .brand{display:flex; align-items:center; gap:12px;}
 .stamp{
@@ -111,7 +108,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .tab-panel.active{display:block; animation:fade .25s ease;}
 @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
 
-/* ===== LEDGER CARD ===== */
 .ledger{
   background:var(--card);
   border:1px solid var(--line);
@@ -128,7 +124,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .ledger-head p.sub{margin:4px 0 0; font-size:13px; color:var(--ink-soft);}
 .ledger-body{padding:24px;}
 
-/* ===== FORM FIELDS — underline ledger style ===== */
 .field{margin-bottom:18px;}
 .field label{
   display:block; font-size:11.5px; font-weight:700; text-transform:uppercase;
@@ -148,7 +143,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .field-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
 @media(max-width:560px){.field-row{grid-template-columns:1fr;}}
 
-/* item rows */
 .item-row{
   display:grid; grid-template-columns:1fr 110px 42px; gap:14px;
   align-items:end; padding:18px 18px 20px; background:var(--paper-dim);
@@ -178,7 +172,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 }
 .btn-add-item:hover{border-color:var(--copper); color:var(--copper);}
 
-/* buttons */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
   font-family:'Public Sans',sans-serif; font-weight:700; font-size:14px;
@@ -195,7 +188,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .btn-block{width:100%;}
 .btn-sm{padding:7px 12px; font-size:12.5px;}
 
-/* ===== STAT CAPS ===== */
 .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px;}
 @media(max-width:640px){.stats{grid-template-columns:1fr 1fr;}}
 .stat{
@@ -215,7 +207,6 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .stat.c-sage .cap{color:var(--sage);}
 .stat.c-brick .cap{color:var(--brick);}
 
-/* ===== TABLE — ledger rows ===== */
 .table-wrap{overflow-x:auto;}
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
 thead th{
@@ -229,7 +220,6 @@ tbody tr:last-child td{border-bottom:none;}
 .resi{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy); font-size:13px;}
 .muted{color:var(--ink-soft); font-size:12px;}
 
-/* status pill = small stamp */
 .pill{
   display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700;
   padding:5px 11px 5px 9px; border-radius:30px; border:1.5px dashed currentColor;
@@ -242,14 +232,11 @@ tbody tr:last-child td{border-bottom:none;}
 .qty-ok{color:var(--sage); font-weight:700;}
 .qty-low{color:var(--brick); font-weight:700;}
 
-/* toolbar */
 .toolbar{
   padding:16px 24px; border-bottom:1px solid var(--line);
   display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
 }
-.toolbar .search{
-  flex:1; min-width:180px; position:relative;
-}
+.toolbar .search{flex:1; min-width:180px; position:relative;}
 .toolbar input[type=search], .toolbar select{
   width:100%; padding:9px 12px; border:1px solid var(--line-strong); border-radius:var(--radius);
   background:var(--paper-dim); font-size:13px; font-family:inherit; outline:none;
@@ -259,7 +246,6 @@ tbody tr:last-child td{border-bottom:none;}
 .hist-search-wrap{max-width:220px;}
 .hist-filter-select{max-width:170px; padding:9px 12px; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper-dim); font-size:13px; font-family:inherit;}
 
-/* ===== MOBILE OPTIMIZATION ===== */
 @media(max-width:680px){
   main{padding:18px 12px 50px;}
   .ledger-head{padding:16px 16px 14px;}
@@ -269,9 +255,7 @@ tbody tr:last-child td{border-bottom:none;}
   .toolbar-actions{justify-content:stretch;}
   .hist-search-wrap, .hist-filter-select{max-width:none; width:100%;}
   .admin-grid{gap:14px;}
-
   .aset-search-bar input[type=search]{ max-width:none; }
-  /* turn data tables into stacked cards */
   #admin-tbody, #hist-tbody{ display:block; }
   #tab-admin table thead, #tab-historis table thead{ display:none; }
   #tab-admin table, #tab-admin tbody, #tab-admin tr,
@@ -292,7 +276,6 @@ tbody tr:last-child td{border-bottom:none;}
     font-weight:700; color:var(--ink-soft); text-align:left; flex-shrink:0;
   }
   #tab-admin tbody td[data-label=""]::before, #tab-historis tbody td[data-label=""]::before{ display:none; }
-  /* first cell (name / resi) becomes the card header, stacked, no label */
   #tab-admin tbody td[data-label="Barang"], #tab-historis tbody td[data-label="Peminjam"]{
     flex-direction:column; align-items:flex-start; text-align:left; padding-top:14px;
   }
@@ -303,16 +286,13 @@ tbody tr:last-child td{border-bottom:none;}
   #tab-historis select.pill{ width:auto; }
 }
 
-/* empty state */
 .empty{padding:50px 20px; text-align:center; color:var(--ink-soft);}
 .empty .glyph{font-size:34px; display:block; margin-bottom:10px; opacity:.5;}
 .empty p{margin:0; font-size:13.5px;}
 
-/* admin two-col */
 .admin-grid{display:grid; grid-template-columns:300px 1fr; gap:20px; align-items:start;}
 @media(max-width:900px){.admin-grid{grid-template-columns:1fr;}}
 
-/* receipt modal */
 .overlay{
   position:fixed; inset:0; background:rgba(16,25,46,.55); backdrop-filter:blur(2px);
   display:none; align-items:center; justify-content:center; z-index:100; padding:18px;
@@ -333,7 +313,6 @@ tbody tr:last-child td{border-bottom:none;}
 .receipt-line b{font-weight:600; text-align:right;}
 .close-x{position:absolute; top:14px; right:16px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-soft);}
 
-/* misc */
 .row-actions{display:flex; gap:6px;}
 .icon-btn{
   background:none; border:1px solid var(--line-strong); border-radius:var(--radius);
@@ -351,7 +330,31 @@ tbody tr:last-child td{border-bottom:none;}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5px; color:var(--ink-soft); text-align:center;}
 
-/* ===== TAB ASET ===== */
+/* loading overlay */
+.loading-veil{
+  position:fixed; inset:0; background:rgba(246,241,231,.8); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; z-index:300;
+  font-size:14px; font-weight:600; color:var(--navy); gap:10px;
+}
+.loading-veil.hidden{display:none;}
+.spinner{
+  width:20px; height:20px; border:2.5px solid var(--line-strong);
+  border-top-color:var(--copper); border-radius:50%; animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* supabase config banner */
+.config-banner{
+  background:var(--amber-bg); border:1px solid var(--amber); border-radius:6px;
+  padding:14px 18px; margin-bottom:24px; font-size:13px; color:var(--amber);
+}
+.config-banner code{
+  display:block; background:rgba(0,0,0,.06); border-radius:4px;
+  padding:8px 10px; margin-top:8px; font-size:11.5px; font-family:'JetBrains Mono',monospace;
+  word-break:break-all; color:var(--ink);
+}
+
+/* TAB ASET */
 .aset-info-banner{
   background:var(--sage-bg); border:1px solid var(--sage); border-radius:var(--radius);
   padding:12px 18px; margin-bottom:22px;
@@ -360,21 +363,15 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 .aset-info-banner strong{ font-weight:700; }
 .gudang-section{ margin-bottom:28px; }
 .gudang-section:last-child{ margin-bottom:0; }
-.gudang-header{
-  display:flex; align-items:center; gap:10px; margin-bottom:12px;
-}
-.gudang-label{
-  font-family:'Source Serif 4',serif; font-weight:700; font-size:17px; color:var(--navy);
-}
+.gudang-header{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.gudang-label{ font-family:'Source Serif 4',serif; font-weight:700; font-size:17px; color:var(--navy); }
 .gudang-count-pill{
   display:inline-flex; align-items:center; gap:5px;
   background:var(--paper-dim); border:1px solid var(--line-strong);
   border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700;
   color:var(--ink-soft); letter-spacing:.5px; text-transform:uppercase;
 }
-.aset-card-grid{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px;
-}
+.aset-card-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
 @media(max-width:500px){ .aset-card-grid{ grid-template-columns:1fr; } }
 .aset-card{
   background:var(--card); border:1px solid var(--line);
@@ -382,50 +379,34 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
   box-shadow:0 1px 0 var(--line-strong);
   display:flex; flex-direction:column; gap:8px;
 }
-.aset-card-name{
-  font-weight:700; font-size:14.5px; color:var(--ink); line-height:1.3;
-}
-.aset-card-stok{
-  display:flex; align-items:baseline; gap:6px;
-}
-.aset-card-stok .num{
-  font-family:'Source Serif 4',serif; font-weight:700; font-size:26px; line-height:1;
-}
+.aset-card-name{ font-weight:700; font-size:14.5px; color:var(--ink); line-height:1.3; }
+.aset-card-stok{ display:flex; align-items:baseline; gap:6px; }
+.aset-card-stok .num{ font-family:'Source Serif 4',serif; font-weight:700; font-size:26px; line-height:1; }
 .aset-card-stok .num.ok{ color:var(--sage); }
 .aset-card-stok .num.low{ color:var(--amber); }
 .aset-card-stok .num.habis{ color:var(--brick); }
 .aset-card-stok .denom{ font-size:12px; color:var(--ink-soft); }
-.aset-card-bar-wrap{
-  background:var(--paper-dim); border-radius:3px; height:5px; overflow:hidden;
-}
-.aset-card-bar{
-  height:100%; border-radius:3px; transition:width .4s ease;
-}
+.aset-card-bar-wrap{ background:var(--paper-dim); border-radius:3px; height:5px; overflow:hidden; }
+.aset-card-bar{ height:100%; border-radius:3px; transition:width .4s ease; }
 .aset-card-bar.ok{ background:var(--sage); }
 .aset-card-bar.low{ background:var(--amber); }
 .aset-card-bar.habis{ background:var(--brick); }
-.aset-card-meta{
-  font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:5px;
-  border-top:1px dashed var(--line); padding-top:8px; margin-top:2px;
-}
+.aset-card-meta{ font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; border-top:1px dashed var(--line); padding-top:8px; margin-top:2px; }
 .aset-card-meta .meta-icon{ opacity:.6; }
-.aset-publik-note{
-  font-size:11.5px; color:var(--ink-soft); text-align:center; margin-top:18px;
-  padding-top:14px; border-top:1px dashed var(--line);
-}
-.aset-search-bar{
-  display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap;
-}
-.aset-search-bar input[type=search]{
-  flex:1; min-width:180px; padding:9px 12px; border:1px solid var(--line-strong);
-  border-radius:var(--radius); background:var(--paper-dim); font-size:13px;
-  font-family:inherit; outline:none;
-}
+.aset-publik-note{ font-size:11.5px; color:var(--ink-soft); text-align:center; margin-top:18px; padding-top:14px; border-top:1px dashed var(--line); }
+.aset-search-bar{ display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+.aset-search-bar input[type=search]{ flex:1; min-width:180px; padding:9px 12px; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper-dim); font-size:13px; font-family:inherit; outline:none; }
 .aset-search-bar input[type=search]:focus{ border-color:var(--copper); }
 .aset-stats{ margin-bottom:22px; }
 </style>
 </head>
 <body>
+
+<!-- Loading veil -->
+<div class="loading-veil" id="loading-veil">
+  <div class="spinner"></div>
+  <span>Memuat data dari Supabase…</span>
+</div>
 
 <header class="top">
   <div class="top-inner">
@@ -526,7 +507,6 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
   <!-- ============ TAB: ADMIN ============ -->
   <section id="tab-admin" class="tab-panel">
 
-    <!-- Lock screen -->
     <div id="admin-lock" class="ledger" style="max-width:380px; margin:40px auto; text-align:center; padding:34px 28px;">
       <div class="stamp" style="margin:0 auto 16px; transform:rotate(0deg); width:54px; height:54px;"><span style="font-size:20px;">🔒</span></div>
       <p class="eyebrow" style="color:var(--copper);">Area Terbatas</p>
@@ -542,7 +522,6 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
       <p id="admin-pin-error" class="muted" style="color:var(--brick); margin-top:12px; display:none;">PIN salah. Coba lagi.</p>
     </div>
 
-    <!-- Protected content -->
     <div id="admin-content" style="display:none;">
       <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
         <button class="btn btn-ghost btn-sm" onclick="changeAdminPin()">Ganti PIN</button>
@@ -664,7 +643,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 
 </main>
 
-<footer class="note">Data tersimpan secara lokal di perangkat ini (localStorage). SIMA-DESA — Sistem Informasi Aset Desa.</footer>
+<footer class="note">Data tersimpan di Supabase Cloud. SIMA-DESA — Sistem Informasi Aset Desa.</footer>
 
 <!-- Receipt modal -->
 <div class="overlay" id="receipt-overlay">
@@ -682,58 +661,127 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================ DATA LAYER ============================ */
-const LS_INV = 'sima_inventory';
-const LS_TRX = 'sima_transactions';
-const LS_SEQ = 'sima_resi_seq';
+/* ============================================================
+   ⚙️  KONFIGURASI SUPABASE
+   Ganti dua nilai di bawah dengan URL & anon key project Anda
+   dari: https://app.supabase.com → Settings → API
+   ============================================================ */
+const SUPABASE_URL      = 'https://zpddejhbmeffgspcgpav.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZGRlamhibWVmZmdzcGNncGF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDU2MDAsImV4cCI6MjA5Njg4MTYwMH0.ycOPTP0H6rC75SJuxI38q5p3dtZU5uqhdRE2r5jgZjk';
 
-function loadInv(){ return JSON.parse(localStorage.getItem(LS_INV) || 'null') || seedInv(); }
-function saveInv(d){ localStorage.setItem(LS_INV, JSON.stringify(d)); }
-function loadTrx(){ return JSON.parse(localStorage.getItem(LS_TRX) || 'null') || seedTrx(); }
-function saveTrx(d){ localStorage.setItem(LS_TRX, JSON.stringify(d)); }
-
-function seedInv(){
-  const d = [
-    {id: uid(), nama:'Kursi Plastik Hijau', gudang:'Gudang RT 1', total:150, tersedia:120, lastUpdated:'2026-06-01'},
-    {id: uid(), nama:'Meja Lipat', gudang:'Gudang RT 1', total:30, tersedia:30, lastUpdated:'2026-05-20'},
-    {id: uid(), nama:'Tenda Terop 4x6', gudang:'Gudang RT 2', total:4, tersedia:3, lastUpdated:'2026-06-10'},
-    {id: uid(), nama:'Panggung Portable', gudang:'Gudang RT 2', total:1, tersedia:1, lastUpdated:'2026-04-15'},
-    {id: uid(), nama:'Sound System', gudang:'Gudang RT 3', total:2, tersedia:1, lastUpdated:'2026-06-18'},
-    {id: uid(), nama:'Proyektor', gudang:'Gudang RT 3', total:1, tersedia:0, lastUpdated:'2026-06-05'},
-  ];
-  saveInv(d);
-  return d;
-}
-function seedTrx(){
-  const inv = loadInv();
-  const soundId = (inv.find(i=>i.nama.includes('Sound'))||{}).id;
-  const d = [
-    {id: uid(), resi:'TRX-002', nama:'Ahmad Subarjo', alamat:'RT 02/RW 01', wa:'081200000000',
-     tglPinjam:'2026-06-10', tglKembali:'2026-06-12', status:'bermasalah',
-     items:[{itemId:soundId, nama:'Sound System', gudang:'Gudang RT 3', qty:1}], createdAt: Date.now()}
-  ];
-  saveTrx(d);
-  localStorage.setItem(LS_SEQ, '3');
-  return d;
-}
-function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
-function nextResi(){
-  let seq = parseInt(localStorage.getItem(LS_SEQ) || '1', 10);
-  const resi = 'TRX-' + String(seq).padStart(3,'0');
-  return resi;
-}
-function commitResiSeq(){
-  let seq = parseInt(localStorage.getItem(LS_SEQ) || '1', 10);
-  localStorage.setItem(LS_SEQ, String(seq + 1));
+/* ── Supabase REST helper ── */
+async function sbFetch(path, options = {}){
+  const url = SUPABASE_URL + '/rest/v1/' + path;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error('Supabase error ' + res.status + ': ' + err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
-let inventory = loadInv();
-let transactions = loadTrx();
+/* Shortcut helpers */
+const sbGet    = (path)              => sbFetch(path, {method:'GET', prefer:''});
+const sbPost   = (path, body)        => sbFetch(path, {method:'POST', body: JSON.stringify(body)});
+const sbPatch  = (path, body)        => sbFetch(path, {method:'PATCH', body: JSON.stringify(body), prefer:'return=representation'});
+const sbDelete = (path)              => sbFetch(path, {method:'DELETE', prefer:''});
+const sbRpc    = (fn, body)          => sbFetch('../rpc/' + fn, {method:'POST', body: JSON.stringify(body), prefer:''});
 
-/* ============================ ADMIN AUTH ============================ */
-const LS_PIN = 'sima_admin_pin';
-const DEFAULT_PIN = '1234';
-function getAdminPin(){ return localStorage.getItem(LS_PIN) || DEFAULT_PIN; }
+/* ============================================================
+   DATA LAYER — selalu baca dari / tulis ke Supabase
+   ============================================================ */
+
+let inventory    = [];   // cache lokal sesi ini
+let transactions = [];   // cache lokal sesi ini
+
+async function loadInv(){
+  const data = await sbGet('inventory?order=created_at.asc');
+  // normalise: snake_case → camelCase
+  inventory = data.map(r => ({
+    id: r.id, nama: r.nama, gudang: r.gudang,
+    total: r.total, tersedia: r.tersedia,
+    lastUpdated: r.last_updated
+  }));
+  return inventory;
+}
+
+async function loadTrx(){
+  const rows = await sbGet('transactions?order=created_at.desc');
+  const items = await sbGet('transaction_items?select=*');
+  transactions = rows.map(r => ({
+    id: r.id, resi: r.resi, nama: r.nama, alamat: r.alamat, wa: r.wa,
+    tglPinjam: r.tgl_pinjam, tglKembali: r.tgl_kembali,
+    status: r.status, createdAt: r.created_at,
+    items: items
+      .filter(it => it.transaction_id === r.id)
+      .map(it => ({ itemId: it.item_id, nama: it.nama, gudang: it.gudang, qty: it.qty }))
+  }));
+  return transactions;
+}
+
+async function saveInvItem(item){
+  // upsert: update jika ada, insert jika baru
+  await sbFetch('inventory?id=eq.' + item.id, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      nama: item.nama, gudang: item.gudang,
+      total: item.total, tersedia: item.tersedia,
+      last_updated: item.lastUpdated
+    }),
+    prefer: 'return=representation'
+  });
+}
+
+async function insertInvItem(item){
+  const row = {
+    id: item.id, nama: item.nama, gudang: item.gudang,
+    total: item.total, tersedia: item.tersedia,
+    last_updated: item.lastUpdated
+  };
+  await sbPost('inventory', row);
+}
+
+async function deleteInvItem(id){
+  await sbDelete('inventory?id=eq.' + id);
+}
+
+async function getAdminPin(){
+  const rows = await sbGet('admin_config?id=eq.1&select=pin_hash');
+  return (rows && rows[0]) ? rows[0].pin_hash : '1234';
+}
+
+async function setAdminPin(newPin){
+  await sbPatch('admin_config?id=eq.1', { pin_hash: newPin });
+}
+
+async function getNextResi(){
+  const rows = await sbGet('resi_seq?id=eq.1&select=seq');
+  return (rows && rows[0]) ? rows[0].seq : 1;
+}
+
+async function incrementResiSeq(){
+  const current = await getNextResi();
+  await sbPatch('resi_seq?id=eq.1', { seq: current + 1 });
+  return current;
+}
+
+function buildResiStr(seq){
+  return 'TRX-' + String(seq).padStart(3,'0');
+}
+
+/* ============================================================
+   ADMIN AUTH
+   ============================================================ */
 let adminUnlocked = sessionStorage.getItem('sima_admin_unlocked') === '1';
 
 function showAdminTab(){
@@ -750,10 +798,13 @@ function showAdminTab(){
   }
 }
 
-document.getElementById('form-admin-pin').addEventListener('submit', function(e){
+document.getElementById('form-admin-pin').addEventListener('submit', async function(e){
   e.preventDefault();
   const val = document.getElementById('admin-pin-input').value.trim();
-  if(val === getAdminPin()){
+  showLoading(true);
+  const pin = await getAdminPin();
+  showLoading(false);
+  if(val === pin){
     adminUnlocked = true;
     sessionStorage.setItem('sima_admin_unlocked', '1');
     showAdminTab();
@@ -771,20 +822,25 @@ function lockAdmin(){
   showAdminTab();
 }
 
-function changeAdminPin(){
+async function changeAdminPin(){
   const current = prompt('Masukkan PIN lama untuk konfirmasi:');
   if(current === null) return;
-  if(current !== getAdminPin()){ showToast('PIN lama salah.'); return; }
+  const pin = await getAdminPin();
+  if(current !== pin){ showToast('PIN lama salah.'); return; }
   const next = prompt('Masukkan PIN baru (angka, min. 4 digit):');
   if(next === null) return;
   if(!/^\d{4,}$/.test(next)){ showToast('PIN baru harus angka minimal 4 digit.'); return; }
   const confirmNext = prompt('Ulangi PIN baru:');
   if(confirmNext !== next){ showToast('Konfirmasi PIN tidak cocok.'); return; }
-  localStorage.setItem(LS_PIN, next);
+  showLoading(true);
+  await setAdminPin(next);
+  showLoading(false);
   showToast('PIN admin berhasil diganti.');
 }
 
-/* ============================ TABS ============================ */
+/* ============================================================
+   TABS
+   ============================================================ */
 function switchTab(name){
   document.querySelectorAll('.tab-panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -796,12 +852,33 @@ function switchTab(name){
     document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
   }
   if(name==='admin') showAdminTab();
-  if(name==='historis') renderHistorisTable();
-  if(name==='aset') renderAsetPublik();
-  if(name==='peminjam') document.getElementById('next-resi-preview').textContent = nextResi();
+  if(name==='historis') refreshAndRenderHistoris();
+  if(name==='aset') refreshAndRenderAset();
+  if(name==='peminjam') refreshResiPreview();
 }
 
-/* ============================ TOAST ============================ */
+async function refreshResiPreview(){
+  const seq = await getNextResi();
+  document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
+}
+
+async function refreshAndRenderHistoris(){
+  showLoading(true);
+  await loadTrx();
+  showLoading(false);
+  renderHistorisTable();
+}
+
+async function refreshAndRenderAset(){
+  showLoading(true);
+  await loadInv();
+  showLoading(false);
+  renderAsetPublik();
+}
+
+/* ============================================================
+   TOAST & LOADING
+   ============================================================ */
 let toastTimer;
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -810,9 +887,16 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
 }
+function showLoading(on){
+  document.getElementById('loading-veil').classList.toggle('hidden', !on);
+}
 
-/* ============================ FORM PEMINJAM ============================ */
+/* ============================================================
+   FORM PEMINJAM
+   ============================================================ */
 const itemRowsEl = document.getElementById('item-rows');
+
+function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
 
 function invOptionsHTML(selectedId){
   return inventory.map(i=>{
@@ -845,24 +929,26 @@ function addItemRow(){
   `;
   itemRowsEl.appendChild(row);
 }
+
 function removeItemRow(rowId){
   if(itemRowsEl.children.length <= 1){ showToast('Minimal satu baris barang diperlukan.'); return; }
   const el = itemRowsEl.querySelector(`[data-row-id="${rowId}"]`);
   if(el) el.remove();
   renumberItemRows();
 }
+
 function renumberItemRows(){
   [...itemRowsEl.querySelectorAll('.item-row')].forEach((row, i)=>{
     row.querySelector('.item-index').textContent = `Barang #${i+1}`;
   });
 }
 
-document.getElementById('form-pinjam').addEventListener('submit', function(e){
+document.getElementById('form-pinjam').addEventListener('submit', async function(e){
   e.preventDefault();
-  const nama = document.getElementById('f-nama').value.trim();
-  const alamat = document.getElementById('f-alamat').value.trim();
-  const wa = document.getElementById('f-wa').value.trim();
-  const tglPinjam = document.getElementById('f-tgl-pinjam').value;
+  const nama       = document.getElementById('f-nama').value.trim();
+  const alamat     = document.getElementById('f-alamat').value.trim();
+  const wa         = document.getElementById('f-wa').value.trim();
+  const tglPinjam  = document.getElementById('f-tgl-pinjam').value;
   const tglKembali = document.getElementById('f-tgl-kembali').value;
 
   if(tglKembali && tglPinjam && tglKembali < tglPinjam){
@@ -873,7 +959,7 @@ document.getElementById('form-pinjam').addEventListener('submit', function(e){
   const items = [];
   for(const row of rows){
     const itemId = row.querySelector('.row-item').value;
-    const qty = parseInt(row.querySelector('.row-qty').value, 10);
+    const qty    = parseInt(row.querySelector('.row-qty').value, 10);
     if(!itemId){ showToast('Pilih barang pada setiap baris.'); return; }
     if(!qty || qty < 1){ showToast('Jumlah barang harus minimal 1.'); return; }
     const invItem = inventory.find(i=>i.id===itemId);
@@ -881,7 +967,8 @@ document.getElementById('form-pinjam').addEventListener('submit', function(e){
     if(qty > invItem.tersedia){ showToast(`Stok ${invItem.nama} hanya tersisa ${invItem.tersedia}.`); return; }
     items.push({itemId, nama: invItem.nama, gudang: invItem.gudang, qty});
   }
-  // merge duplicate item picks
+
+  // merge duplikat
   const merged = {};
   items.forEach(it=>{
     if(merged[it.itemId]) merged[it.itemId].qty += it.qty;
@@ -893,33 +980,67 @@ document.getElementById('form-pinjam').addEventListener('submit', function(e){
     if(it.qty > invItem.tersedia){ showToast(`Total ${it.nama} melebihi stok tersedia (${invItem.tersedia}).`); return; }
   }
 
-  // commit: deduct stock
-  finalItems.forEach(it=>{
-    const invItem = inventory.find(i=>i.id===it.itemId);
-    invItem.tersedia -= it.qty;
-  });
-  saveInv(inventory);
+  showLoading(true);
+  try {
+    // 1. ambil & increment resi
+    const seqNum = await incrementResiSeq();
+    const resi   = buildResiStr(seqNum);
+    const trxId  = uid();
 
-  const resi = nextResi();
-  commitResiSeq();
-  const trx = {
-    id: uid(), resi, nama, alamat, wa, tglPinjam, tglKembali,
-    status:'aktif', items: finalItems, createdAt: Date.now()
-  };
-  transactions.unshift(trx);
-  saveTrx(transactions);
+    // 2. insert transaksi
+    await sbPost('transactions', {
+      id: trxId, resi, nama, alamat, wa,
+      tgl_pinjam: tglPinjam, tgl_kembali: tglKembali,
+      status: 'aktif'
+    });
 
-  openReceipt(trx);
-  this.reset();
-  itemRowsEl.innerHTML = '';
-  addItemRow();
-  document.getElementById('next-resi-preview').textContent = nextResi();
+    // 3. insert item-item transaksi
+    for(const it of finalItems){
+      await sbPost('transaction_items', {
+        transaction_id: trxId,
+        item_id: it.itemId,
+        nama: it.nama,
+        gudang: it.gudang,
+        qty: it.qty
+      });
+    }
+
+    // 4. kurangi stok inventory
+    for(const it of finalItems){
+      const invItem = inventory.find(i=>i.id===it.itemId);
+      invItem.tersedia -= it.qty;
+      await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
+    }
+
+    // 5. reload data
+    await loadInv();
+    await loadTrx();
+
+    const trx = transactions.find(t=>t.id===trxId) || {
+      id:trxId, resi, nama, alamat, wa, tglPinjam, tglKembali,
+      status:'aktif', items: finalItems
+    };
+
+    showLoading(false);
+    openReceipt(trx);
+    this.reset();
+    itemRowsEl.innerHTML = '';
+    addItemRow();
+    await refreshResiPreview();
+    showToast('Peminjaman berhasil disimpan.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal menyimpan: ' + err.message);
+    console.error(err);
+  }
 });
 
-/* ============================ RECEIPT MODAL ============================ */
+/* ============================================================
+   RECEIPT MODAL
+   ============================================================ */
 function openReceipt(trx){
   document.getElementById('r-resi-title').textContent = trx.nama;
-  document.getElementById('r-resi-id').textContent = '#' + trx.resi;
+  document.getElementById('r-resi-id').textContent    = '#' + trx.resi;
   const lines = [
     ['Alamat', trx.alamat],
     ['No. WA', trx.wa],
@@ -944,9 +1065,11 @@ function formatDate(s){
   return d.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
 }
 
-/* ============================ ADMIN STOK ============================ */
+/* ============================================================
+   ADMIN STOK
+   ============================================================ */
 function renderAdminStats(){
-  const totalJenis = inventory.length;
+  const totalJenis    = inventory.length;
   const totalTersedia = inventory.reduce((s,i)=>s+i.tersedia,0);
   const totalDipinjam = inventory.reduce((s,i)=>s+(i.total-i.tersedia),0);
   document.getElementById('admin-stats').innerHTML = `
@@ -958,10 +1081,10 @@ function renderAdminStats(){
 
 function renderAdminTable(){
   renderAdminStats();
-  const q = (document.getElementById('admin-search').value || '').toLowerCase();
+  const q        = (document.getElementById('admin-search').value || '').toLowerCase();
   const filtered = inventory.filter(i=> i.nama.toLowerCase().includes(q) || i.gudang.toLowerCase().includes(q));
-  const tbody = document.getElementById('admin-tbody');
-  const emptyEl = document.getElementById('admin-empty');
+  const tbody    = document.getElementById('admin-tbody');
+  const emptyEl  = document.getElementById('admin-empty');
 
   if(filtered.length === 0){
     tbody.innerHTML = '';
@@ -988,69 +1111,95 @@ function renderAdminTable(){
   refreshFormDependents();
 }
 
-document.getElementById('form-stok').addEventListener('submit', function(e){
+document.getElementById('form-stok').addEventListener('submit', async function(e){
   e.preventDefault();
-  const id = document.getElementById('s-id').value;
-  const nama = document.getElementById('s-nama').value.trim();
-  const gudang = document.getElementById('s-gudang').value.trim();
-  const total = parseInt(document.getElementById('s-total').value, 10);
+  const id       = document.getElementById('s-id').value;
+  const nama     = document.getElementById('s-nama').value.trim();
+  const gudang   = document.getElementById('s-gudang').value.trim();
+  const total    = parseInt(document.getElementById('s-total').value, 10);
   const tersedia = parseInt(document.getElementById('s-tersedia').value, 10);
 
   if(tersedia > total){ showToast('Stok tersedia tidak boleh melebihi total unit.'); return; }
 
   const now = new Date().toISOString().slice(0,10);
-  if(id){
-    const item = inventory.find(i=>i.id===id);
-    Object.assign(item, {nama, gudang, total, tersedia, lastUpdated: now});
-    showToast('Data aset diperbarui.');
-  } else {
-    inventory.push({id: uid(), nama, gudang, total, tersedia, lastUpdated: now});
-    showToast('Aset baru ditambahkan.');
+  showLoading(true);
+  try {
+    if(id){
+      // update existing
+      await sbPatch('inventory?id=eq.' + id, {
+        nama, gudang, total, tersedia, last_updated: now
+      });
+      const item = inventory.find(i=>i.id===id);
+      Object.assign(item, {nama, gudang, total, tersedia, lastUpdated: now});
+      showToast('Data aset diperbarui.');
+    } else {
+      // insert new
+      const newId = uid();
+      await sbPost('inventory', { id: newId, nama, gudang, total, tersedia, last_updated: now });
+      inventory.push({ id: newId, nama, gudang, total, tersedia, lastUpdated: now });
+      showToast('Aset baru ditambahkan.');
+    }
+    showLoading(false);
+    cancelEditStok();
+    renderAdminTable();
+    renderAsetPublik();
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal menyimpan: ' + err.message);
+    console.error(err);
   }
-  saveInv(inventory);
-  cancelEditStok();
-  renderAdminTable();
-  renderAsetPublik();
 });
 
 function editStok(id){
   const item = inventory.find(i=>i.id===id);
   if(!item) return;
-  document.getElementById('s-id').value = item.id;
-  document.getElementById('s-nama').value = item.nama;
-  document.getElementById('s-gudang').value = item.gudang;
-  document.getElementById('s-total').value = item.total;
+  document.getElementById('s-id').value       = item.id;
+  document.getElementById('s-nama').value     = item.nama;
+  document.getElementById('s-gudang').value   = item.gudang;
+  document.getElementById('s-total').value    = item.total;
   document.getElementById('s-tersedia').value = item.tersedia;
   document.getElementById('form-stok-mode').textContent = 'Ubah';
   document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
   document.getElementById('s-nama').focus();
 }
+
 function cancelEditStok(){
   document.getElementById('form-stok').reset();
   document.getElementById('s-id').value = '';
   document.getElementById('form-stok-mode').textContent = 'Tambah';
   document.getElementById('btn-cancel-edit').style.display = 'none';
 }
-function deleteStok(id){
+
+async function deleteStok(id){
   const item = inventory.find(i=>i.id===id);
   if(!item) return;
   if(!confirm(`Hapus "${item.nama}" dari inventaris?`)) return;
-  inventory = inventory.filter(i=>i.id!==id);
-  saveInv(inventory);
-  renderAdminTable();
-  showToast('Aset dihapus.');
+  showLoading(true);
+  try {
+    await sbDelete('inventory?id=eq.' + id);
+    inventory = inventory.filter(i=>i.id!==id);
+    showLoading(false);
+    renderAdminTable();
+    showToast('Aset dihapus.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal menghapus: ' + err.message);
+    console.error(err);
+  }
 }
 
-/* ============================ HISTORIS ============================ */
+/* ============================================================
+   HISTORIS
+   ============================================================ */
 function renderHistorisTable(){
-  const q = (document.getElementById('hist-search').value || '').toLowerCase();
+  const q            = (document.getElementById('hist-search').value || '').toLowerCase();
   const statusFilter = document.getElementById('hist-filter').value;
-  const filtered = transactions.filter(t=>{
+  const filtered     = transactions.filter(t=>{
     const matchQ = t.resi.toLowerCase().includes(q) || t.nama.toLowerCase().includes(q);
     const matchS = !statusFilter || t.status === statusFilter;
     return matchQ && matchS;
   });
-  const tbody = document.getElementById('hist-tbody');
+  const tbody   = document.getElementById('hist-tbody');
   const emptyEl = document.getElementById('hist-empty');
 
   if(filtered.length === 0){
@@ -1060,7 +1209,6 @@ function renderHistorisTable(){
     emptyEl.style.display = 'none';
     tbody.innerHTML = filtered.map(t=>{
       const itemsText = t.items.map(it=>`${it.qty}× ${escapeHtml(it.nama)} <span style="color:var(--ink-soft); font-weight:600;">[${escapeHtml(it.gudang)}]</span>`).join('<br>');
-      const statusIcon = {aktif:'⏳', selesai:'✅', bermasalah:'⚠️'}[t.status];
       return `
       <tr>
         <td data-label="Peminjam">
@@ -1081,59 +1229,59 @@ function renderHistorisTable(){
   }
 }
 
-function changeStatus(id, newStatus){
+async function changeStatus(id, newStatus){
   const t = transactions.find(x=>x.id===id);
   if(!t) return;
-  const wasActive = t.status === 'aktif' || t.status === 'bermasalah';
-  const nowReturning = newStatus === 'selesai';
-  // if moving INTO 'selesai' from a non-returned state, restock items
-  if(nowReturning && wasActive){
-    t.items.forEach(it=>{
-      const invItem = inventory.find(i=>i.id===it.itemId);
-      if(invItem) invItem.tersedia = Math.min(invItem.total, invItem.tersedia + it.qty);
-    });
-    saveInv(inventory);
+  const wasActive     = t.status === 'aktif' || t.status === 'bermasalah';
+  const nowReturning  = newStatus === 'selesai';
+
+  showLoading(true);
+  try {
+    // restock jika pindah ke selesai
+    if(nowReturning && wasActive){
+      for(const it of t.items){
+        const invItem = inventory.find(i=>i.id===it.itemId);
+        if(invItem){
+          invItem.tersedia = Math.min(invItem.total, invItem.tersedia + it.qty);
+          await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
+        }
+      }
+    }
+    // kurangi stok lagi jika mundur dari selesai
+    if(t.status === 'selesai' && !nowReturning){
+      for(const it of t.items){
+        const invItem = inventory.find(i=>i.id===it.itemId);
+        if(invItem){
+          invItem.tersedia = Math.max(0, invItem.tersedia - it.qty);
+          await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
+        }
+      }
+    }
+
+    // update status di DB
+    await sbPatch('transactions?id=eq.' + id, { status: newStatus });
+    t.status = newStatus;
+    showLoading(false);
+    renderHistorisTable();
+    showToast('Status transaksi diperbarui.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal update status: ' + err.message);
+    console.error(err);
   }
-  // if moving OUT of 'selesai' back to aktif/bermasalah, deduct again
-  if(t.status === 'selesai' && !nowReturning){
-    t.items.forEach(it=>{
-      const invItem = inventory.find(i=>i.id===it.itemId);
-      if(invItem) invItem.tersedia = Math.max(0, invItem.tersedia - it.qty);
-    });
-    saveInv(inventory);
-  }
-  t.status = newStatus;
-  saveTrx(transactions);
-  renderHistorisTable();
-  showToast('Status transaksi diperbarui.');
 }
 
-/* ============================ UTIL ============================ */
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function refreshFormDependents(){
-  // refresh item dropdowns in the borrow form to reflect latest stock
-  itemRowsEl.querySelectorAll('.item-row').forEach(row=>{
-    const sel = row.querySelector('.row-item');
-    const current = sel.value;
-    sel.innerHTML = `<option value="">-- Pilih Barang --</option>${invOptionsHTML(current)}`;
-  });
-}
-
-/* ============================ TAB ASET PUBLIK ============================ */
+/* ============================================================
+   TAB ASET PUBLIK
+   ============================================================ */
 function renderAsetPublik(){
-  const q = (document.getElementById('aset-search').value || '').toLowerCase();
+  const q        = (document.getElementById('aset-search').value || '').toLowerCase();
   const filtered = inventory.filter(i => i.nama.toLowerCase().includes(q));
 
-  // group by gudang, preserve order
-  const gudangMap = {};
+  const gudangMap   = {};
   const gudangOrder = [];
   filtered.forEach(item => {
-    if(!gudangMap[item.gudang]){
-      gudangMap[item.gudang] = [];
-      gudangOrder.push(item.gudang);
-    }
+    if(!gudangMap[item.gudang]){ gudangMap[item.gudang] = []; gudangOrder.push(item.gudang); }
     gudangMap[item.gudang].push(item);
   });
 
@@ -1144,16 +1292,16 @@ function renderAsetPublik(){
   }
 
   const html = gudangOrder.map(gudang => {
-    const items = gudangMap[gudang];
-    const totalUnit = items.reduce((s,i)=>s+i.total,0);
+    const items        = gudangMap[gudang];
+    const totalUnit    = items.reduce((s,i)=>s+i.total,0);
     const tersediaUnit = items.reduce((s,i)=>s+i.tersedia,0);
     const cards = items.map(item => {
-      const pct = item.total > 0 ? Math.round((item.tersedia/item.total)*100) : 0;
-      const isHabis = item.tersedia <= 0;
-      const isLow = !isHabis && item.tersedia <= Math.max(1, Math.round(item.total*0.15));
-      const cls = isHabis ? 'habis' : isLow ? 'low' : 'ok';
+      const pct         = item.total > 0 ? Math.round((item.tersedia/item.total)*100) : 0;
+      const isHabis     = item.tersedia <= 0;
+      const isLow       = !isHabis && item.tersedia <= Math.max(1, Math.round(item.total*0.15));
+      const cls         = isHabis ? 'habis' : isLow ? 'low' : 'ok';
       const statusLabel = isHabis ? '— Habis' : isLow ? ' (hampir habis)' : '';
-      const updatedStr = item.lastUpdated
+      const updatedStr  = item.lastUpdated
         ? new Date(item.lastUpdated+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})
         : '—';
       return `
@@ -1183,17 +1331,60 @@ function renderAsetPublik(){
       </div>`;
   }).join('');
 
-  container.innerHTML = html + `<p class="aset-publik-note">📋 Data stok diperbarui secara real-time. Terakhir dimuat: ${new Date().toLocaleString('id-ID')}.</p>`;
+  container.innerHTML = html + `<p class="aset-publik-note">📋 Data dimuat dari Supabase. Terakhir dimuat: ${new Date().toLocaleString('id-ID')}.</p>`;
 }
 
-/* ============================ INIT ============================ */
-(function init(){
-  addItemRow();
-  document.getElementById('next-resi-preview').textContent = nextResi();
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('f-tgl-pinjam').value = today;
-  renderAdminTable();
-  renderHistorisTable();
+/* ============================================================
+   UTIL
+   ============================================================ */
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function refreshFormDependents(){
+  itemRowsEl.querySelectorAll('.item-row').forEach(row=>{
+    const sel     = row.querySelector('.row-item');
+    const current = sel.value;
+    sel.innerHTML = `<option value="">-- Pilih Barang --</option>${invOptionsHTML(current)}`;
+  });
+}
+
+/* ============================================================
+   INIT — muat semua data dari Supabase saat halaman dibuka
+   ============================================================ */
+(async function init(){
+  // Cek apakah konfigurasi sudah diisi
+  if(SUPABASE_URL.includes('XXXXXXXXXXXXXXXXXXXX') || SUPABASE_ANON_KEY.includes('XXXXXXXXXX')){
+    showLoading(false);
+    showToast('⚠️ Isi SUPABASE_URL & SUPABASE_ANON_KEY terlebih dahulu!');
+    // tampilkan banner peringatan
+    document.querySelector('main').insertAdjacentHTML('afterbegin', `
+      <div class="config-banner">
+        ⚠️ <strong>Konfigurasi Supabase belum diisi.</strong>
+        Buka file HTML ini di editor teks, lalu ganti dua baris berikut di bagian atas script:
+        <code>const SUPABASE_URL      = 'https://XXXX.supabase.co';\nconst SUPABASE_ANON_KEY = 'eyJ...';</code>
+        Dapatkan nilai tersebut dari <strong>app.supabase.com → Settings → API</strong>.
+        Setelah itu jalankan SQL yang disertakan (<code>sima_desa_supabase.sql</code>) di Supabase SQL Editor.
+      </div>`);
+    // init UI minimal tanpa data
+    addItemRow();
+    document.getElementById('next-resi-preview').textContent = 'TRX-001';
+    return;
+  }
+
+  showLoading(true);
+  try {
+    await loadInv();
+    await loadTrx();
+    const seq = await getNextResi();
+    showLoading(false);
+    addItemRow();
+    document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
+    renderAsetPublik();
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal terhubung ke Supabase: ' + err.message);
+    console.error(err);
+  }
 })();
 </script>
 </body>
