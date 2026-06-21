@@ -834,10 +834,13 @@ async function getNextResi(){
 }
 
 async function incrementResiSeq(){
-  const current = await getNextResi();
-  await sbPatch('resi_seq?id=eq.1', { seq: current + 1 });
-  lsSaveSeq(current + 1);
-  return current;
+  // Atomik di server (RPC claim_next_resi) — mencegah dua transaksi
+  // mengklaim nomor resi yang sama saat submit bersamaan.
+  const rows = await sbRpc('claim_next_resi', {});
+  const seq  = (rows && rows[0] && rows[0].seq !== undefined) ? rows[0].seq : null;
+  if(seq === null){ throw new Error('Gagal mengklaim nomor resi dari server.'); }
+  lsSaveSeq(seq + 1);
+  return seq;
 }
 
 function buildResiStr(seq){
@@ -944,6 +947,10 @@ async function openPeminjamTab(){
   getNextResi().then(seq => {
     document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
   }).catch(()=>{});
+
+  // segarkan data stok di belakang juga di tab ini — supaya dropdown barang
+  // & validasi jumlah tidak memakai angka stok yang sudah basi.
+  bgSyncInv(() => refreshFormDependents());
 }
 
 async function refreshResiPreview(){
@@ -1057,7 +1064,7 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
 
   showLoading(true);
   try {
-    // 1. ambil & increment resi
+    // 1. klaim resi (atomik di server — lihat fungsi incrementResiSeq)
     const seqNum = await incrementResiSeq();
     const resi   = buildResiStr(seqNum);
     const trxId  = uid();
@@ -1069,7 +1076,37 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
       status: 'aktif'
     });
 
-    // 3. insert item-item transaksi
+    // 3. kurangi stok SECARA ATOMIK per barang (server jadi sumber kebenaran,
+    //    bukan angka `tersedia` di memori klien yang bisa basi/race).
+    const decremented = [];
+    let stockError = null;
+    for(const it of finalItems){
+      let rows;
+      try {
+        rows = await sbRpc('borrow_stock', { p_item_id: it.itemId, p_qty: it.qty });
+      } catch(e){
+        stockError = e; break;
+      }
+      if(!rows || !rows.length){
+        stockError = new Error(`Stok "${it.nama}" tidak cukup — mungkin baru saja dipinjam orang lain. Silakan coba lagi.`);
+        break;
+      }
+      decremented.push(it);
+      const invItem = inventory.find(i=>i.id===it.itemId);
+      if(invItem) invItem.tersedia = rows[0].tersedia;
+    }
+
+    if(stockError){
+      // rollback: kembalikan stok yang sudah terlanjur dikurangi & batalkan transaksi
+      for(const it of decremented){
+        try { await sbRpc('return_stock', { p_item_id: it.itemId, p_qty: it.qty }); } catch{}
+      }
+      try { await sbDelete('transactions?id=eq.' + trxId); } catch{}
+      throw stockError;
+    }
+
+    // 4. insert item-item transaksi (baru sekarang — setelah stok dipastikan aman,
+    //    supaya tidak ada transaction_items "yatim" jika langkah 3 gagal di tengah)
     for(const it of finalItems){
       await sbPost('transaction_items', {
         transaction_id: trxId,
@@ -1080,29 +1117,24 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
       });
     }
 
-    // 4. kurangi stok inventory
-    for(const it of finalItems){
-      const invItem = inventory.find(i=>i.id===it.itemId);
-      invItem.tersedia -= it.qty;
-      await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
-    }
-
-    // 5. reload data
-    await loadInv();
-    await loadTrx();
-
-    const trx = transactions.find(t=>t.id===trxId) || {
+    const trx = {
       id:trxId, resi, nama, alamat, wa, tglPinjam, tglKembali,
       status:'aktif', items: finalItems
     };
+    transactions.unshift(trx); // tampil instan di histori tanpa menunggu reload
 
     showLoading(false);
     openReceipt(trx);
     this.reset();
     itemRowsEl.innerHTML = '';
     addItemRow();
-    await refreshResiPreview();
     showToast('Peminjaman berhasil disimpan.');
+
+    // 5. sinkronisasi ulang di belakang — TIDAK dianggap "gagal simpan" jika error,
+    //    karena transaksi & pengurangan stok di atas sudah sukses tercatat di server.
+    refreshResiPreview().catch(()=>{});
+    loadInv().catch(err => console.warn('Sinkron stok gagal (data tersimpan, hanya cache lokal yang belum segar):', err.message));
+    loadTrx().catch(err => console.warn('Sinkron histori gagal (data tersimpan, hanya cache lokal yang belum segar):', err.message));
   } catch(err){
     showLoading(false);
     showToast('Gagal menyimpan: ' + err.message);
@@ -1382,24 +1414,20 @@ async function changeStatus(id, newStatus){
 
   showLoading(true);
   try {
-    // restock jika pindah ke selesai
+    // restock jika pindah ke selesai (atomik, dibatasi maksimal = total di server)
     if(nowReturning && wasActive){
       for(const it of t.items){
+        const rows = await sbRpc('return_stock', { p_item_id: it.itemId, p_qty: it.qty });
         const invItem = inventory.find(i=>i.id===it.itemId);
-        if(invItem){
-          invItem.tersedia = Math.min(invItem.total, invItem.tersedia + it.qty);
-          await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
-        }
+        if(invItem && rows && rows[0]) invItem.tersedia = rows[0].tersedia;
       }
     }
-    // kurangi stok lagi jika mundur dari selesai
+    // kurangi stok lagi jika mundur dari selesai (atomik, dibatasi minimal = 0 di server)
     if(t.status === 'selesai' && !nowReturning){
       for(const it of t.items){
+        const rows = await sbRpc('reborrow_stock', { p_item_id: it.itemId, p_qty: it.qty });
         const invItem = inventory.find(i=>i.id===it.itemId);
-        if(invItem){
-          invItem.tersedia = Math.max(0, invItem.tersedia - it.qty);
-          await sbPatch('inventory?id=eq.' + invItem.id, { tersedia: invItem.tersedia });
-        }
+        if(invItem && rows && rows[0]) invItem.tersedia = rows[0].tersedia;
       }
     }
 
