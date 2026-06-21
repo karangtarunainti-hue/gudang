@@ -941,6 +941,12 @@ async function openPeminjamTab(){
     document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
   }).catch(()=>{});
 
+  // default tanggal pinjam = hari ini
+  const tglPinjamEl = document.getElementById('f-tgl-pinjam');
+  if(!tglPinjamEl.value){
+    tglPinjamEl.value = new Date().toISOString().slice(0, 10);
+  }
+
   // segarkan data stok di belakang juga di tab ini — supaya dropdown barang
   // & validasi jumlah tidak memakai angka stok yang sudah basi.
   bgSyncInv(() => refreshFormDependents());
@@ -1547,6 +1553,7 @@ function refreshFormDependents(){
   // Render UI langsung dari cache
   showLoading(false);
   addItemRow();
+  document.getElementById('f-tgl-pinjam').value = new Date().toISOString().slice(0, 10);
   document.getElementById('next-resi-preview').textContent = buildResiStr(cachedSeq);
   if(inventory.length) renderAsetPublik();
 
