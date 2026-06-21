@@ -1257,7 +1257,11 @@ async function deleteStok(id){
     showToast('Aset dihapus.');
   } catch(err){
     showLoading(false);
-    showToast('Gagal menghapus: ' + err.message);
+    if(err.message && err.message.includes('23503')){
+      showToast('Aset tidak bisa dihapus karena masih punya riwayat transaksi.');
+    } else {
+      showToast('Gagal menghapus: ' + err.message);
+    }
     console.error(err);
   }
 }
