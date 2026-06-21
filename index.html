@@ -3,6 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ═══ PWA ═══ -->
+  <meta name="application-name" content="Sedesa">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sedesa">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1B2A4A">
+  <meta name="msapplication-TileColor" content="#1B2A4A">
+  <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512x512.png">
+
+  <!-- Favicon fallback -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
 <title>Sedesa — Buku Pinjam Aset Desa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -481,6 +502,17 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 .aset-search-bar input[type=search]{ flex:1; min-width:180px; padding:9px 12px; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper-dim); font-size:13px; font-family:inherit; outline:none; }
 .aset-search-bar input[type=search]:focus{ border-color:var(--copper); }
 .aset-stats{ margin-bottom:22px; }
+
+/* ── PWA Install Button ── */
+#pwa-install-btn{
+  display:none; align-items:center; gap:6px; flex-shrink:0;
+  background:rgba(181,101,29,.18); border:1px solid var(--copper-light);
+  color:var(--copper-light); font-family:'Public Sans',sans-serif;
+  font-size:12.5px; font-weight:700; letter-spacing:.3px;
+  padding:8px 14px; border-radius:30px; cursor:pointer;
+  transition:background .15s, color .15s;
+}
+#pwa-install-btn:hover{ background:var(--copper); border-color:var(--copper); color:#fff; }
 </style>
 </head>
 <body>
@@ -2174,6 +2206,70 @@ function refreshFormDependents(){
     }
   }
 })();
+</script>
+
+<script>
+/* ── Service Worker Registration (PWA) ── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('[PWA] Service Worker terdaftar:', reg.scope);
+
+        // Cek update SW saat halaman dimuat ulang
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Ada versi baru — tampilkan toast
+              const toast = document.getElementById('toast');
+              if (toast) {
+                toast.textContent = '🔄 Pembaruan tersedia. Muat ulang halaman untuk menerapkan.';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 5000);
+              }
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] Gagal mendaftar SW:', err));
+  });
+}
+
+/* ── Install Prompt (tombol "Pasang Aplikasi") ── */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Tampilkan tombol install jika tersedia di halaman
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+function pwaInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      const btn = document.getElementById('pwa-install-btn');
+      if (btn) btn.style.display = 'none';
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = '✅ Sedesa berhasil dipasang di perangkat!';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+      }
+    }
+    deferredPrompt = null;
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  deferredPrompt = null;
+});
 </script>
 </body>
 </html>
