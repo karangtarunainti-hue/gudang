@@ -988,7 +988,7 @@ function addItemRow(){
   row.className = 'item-row';
   row.dataset.rowId = rowId;
   row.innerHTML = `
-    <span class="item-index">Barang #${itemRowsEl.children.length + 1}</span>
+    <span class="item-index" style="display:none">Barang #${itemRowsEl.children.length + 1}</span>
     <div class="field">
       <label>Barang</label>
       <select class="row-item">
