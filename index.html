@@ -143,6 +143,56 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .field-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
 @media(max-width:560px){.field-row{grid-template-columns:1fr;}}
 
+/* ── Dropdown custom: pilih barang per gudang ── */
+.combo{position:relative;}
+.combo-trigger{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:none; border-bottom:1.5px solid var(--line-strong); background:transparent;
+  padding:9px 2px; font-size:15px; font-family:inherit; color:var(--ink);
+  cursor:pointer; text-align:left; transition:border-color .15s;
+}
+.combo-trigger:hover{ border-color:var(--ink-soft); }
+.combo-trigger.is-open{ border-color:var(--copper); }
+.combo-trigger-text{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.combo-trigger-text.placeholder{ color:var(--ink-soft); }
+.combo-chevron{
+  width:11px; height:11px; flex-shrink:0; color:var(--ink-soft);
+  transition:transform .15s;
+}
+.combo-trigger.is-open .combo-chevron{ transform:rotate(180deg); }
+
+.combo-panel{
+  position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:30;
+  background:var(--card); border:1px solid var(--line); border-radius:8px;
+  box-shadow:0 14px 32px -10px rgba(27,42,74,.32);
+  max-height:280px; overflow-y:auto; padding:6px;
+}
+.combo-empty{ padding:16px 10px; font-size:13px; color:var(--ink-soft); text-align:center; }
+.combo-group{ margin-bottom:4px; }
+.combo-group:last-child{ margin-bottom:0; }
+.combo-group-label{
+  position:sticky; top:-6px; background:var(--paper-dim); margin:0 -6px 2px;
+  padding:7px 10px; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.8px; color:var(--copper); border-bottom:1px solid var(--line); z-index:1;
+}
+.combo-option{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:none; background:none; padding:9px 10px; font-size:14.5px; color:var(--ink);
+  cursor:pointer; border-radius:5px; text-align:left; font-family:inherit;
+}
+.combo-option:hover:not(.is-disabled){ background:var(--paper-dim); }
+.combo-option.is-selected{ background:#E9EDF5; color:var(--navy); font-weight:700; }
+.combo-option.is-disabled{ opacity:.5; cursor:not-allowed; }
+.combo-option-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.combo-stok-badge{
+  flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
+  padding:2px 9px; border-radius:20px; white-space:nowrap;
+}
+.combo-stok-badge.stok-cukup{ background:var(--sage-bg); color:var(--sage); }
+.combo-stok-badge.stok-rendah{ background:var(--amber-bg); color:var(--amber); }
+.combo-stok-badge.stok-habis{ background:var(--brick-bg); color:var(--brick); }
+
 .item-row{
   display:grid; grid-template-columns:1fr 110px 42px; gap:14px;
   align-items:end; padding:18px 18px 20px; background:var(--paper-dim);
@@ -160,7 +210,7 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
   .item-row .btn-rm{width:100%; height:42px;}
 }
 .item-row .field{margin-bottom:0;}
-.item-row .field select, .item-row .field input{padding:11px 2px; font-size:15.5px;}
+.item-row .field select, .item-row .field input, .item-row .field .combo-trigger{padding:11px 2px; font-size:15.5px;}
 .btn-rm{
   height:42px; border:1px solid var(--brick); background:var(--brick-bg); color:var(--brick);
   border-radius:6px; cursor:pointer; font-size:16px; font-weight:700;
@@ -1022,22 +1072,23 @@ const itemRowsEl = document.getElementById('item-rows');
 
 function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
 
-function invOptionsHTML(selectedId){
+function groupInventoryActive(){
   const aktif = inventory.filter(i=>i.isActive);
-
-  // kelompokkan barang per gudang
   const byGudang = {};
   aktif.forEach(i=>{
     if(!byGudang[i.gudang]) byGudang[i.gudang] = [];
     byGudang[i.gudang].push(i);
   });
-
   // urutkan nama gudang A-Z, lalu nama barang A-Z di dalam tiap gudang
   const gudangNames = Object.keys(byGudang).sort((a,b)=>a.localeCompare(b,'id'));
+  gudangNames.forEach(g=> byGudang[g].sort((a,b)=>a.nama.localeCompare(b.nama,'id')));
+  return { gudangNames, byGudang };
+}
 
+function invOptionsHTML(selectedId){
+  const { gudangNames, byGudang } = groupInventoryActive();
   return gudangNames.map(gudang=>{
-    const items = byGudang[gudang].slice().sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
-    const optionsHTML = items.map(i=>{
+    const optionsHTML = byGudang[gudang].map(i=>{
       const disabled = i.tersedia <= 0 ? 'disabled' : '';
       const label = `${i.nama} (Sisa ${i.tersedia})`;
       const sel = i.id===selectedId ? 'selected' : '';
@@ -1046,6 +1097,98 @@ function invOptionsHTML(selectedId){
     return `<optgroup label="${escapeHtml(gudang)}">${optionsHTML}</optgroup>`;
   }).join('');
 }
+
+function stokBadgeClass(tersedia){
+  if(tersedia<=0) return 'stok-habis';
+  if(tersedia<=2) return 'stok-rendah';
+  return 'stok-cukup';
+}
+
+function invComboPanelHTML(selectedId){
+  const { gudangNames, byGudang } = groupInventoryActive();
+  if(gudangNames.length===0) return `<div class="combo-empty">Belum ada barang aktif.</div>`;
+  return gudangNames.map(gudang=>{
+    const optionsHTML = byGudang[gudang].map(i=>{
+      const habis = i.tersedia<=0;
+      const sel = i.id===selectedId ? 'is-selected' : '';
+      return `
+        <button type="button" class="combo-option ${sel} ${habis?'is-disabled':''}"
+          data-id="${i.id}" data-nama="${escapeHtml(i.nama)}" data-tersedia="${i.tersedia}"
+          ${habis?'disabled':''} onclick="selectComboOption(this)">
+          <span class="combo-option-name">${escapeHtml(i.nama)}</span>
+          <span class="combo-stok-badge ${stokBadgeClass(i.tersedia)}">${habis?'Habis':'Sisa '+i.tersedia}</span>
+        </button>`;
+    }).join('');
+    return `
+      <div class="combo-group">
+        <div class="combo-group-label">📦 ${escapeHtml(gudang)}</div>
+        ${optionsHTML}
+      </div>`;
+  }).join('');
+}
+
+/* Buka/tutup panel combo barang. forceClose=true selalu menutup. */
+function toggleCombo(trigger, forceClose){
+  const wrap  = trigger.closest('.combo');
+  const panel = wrap.querySelector('.combo-panel');
+  const isOpen = !panel.hidden;
+
+  // tutup combo lain yang mungkin masih terbuka
+  document.querySelectorAll('.combo-panel').forEach(p=>{ if(p!==panel) p.hidden = true; });
+  document.querySelectorAll('.combo-trigger.is-open').forEach(t=>{ if(t!==trigger) t.classList.remove('is-open'); });
+
+  if(forceClose === true || isOpen){
+    panel.hidden = true;
+    trigger.classList.remove('is-open');
+  } else {
+    panel.hidden = false;
+    trigger.classList.add('is-open');
+  }
+}
+
+/* Pilih satu barang dari panel combo dan sinkronkan ke <select> tersembunyi. */
+function selectComboOption(optBtn){
+  if(optBtn.disabled) return;
+  const wrap    = optBtn.closest('.combo');
+  const select  = wrap.querySelector('.row-item');
+  const trigger = wrap.querySelector('.combo-trigger');
+  const textEl  = trigger.querySelector('.combo-trigger-text');
+
+  const id       = optBtn.dataset.id;
+  const nama     = optBtn.dataset.nama;
+  const tersedia = Number(optBtn.dataset.tersedia);
+
+  select.value = id;
+  textEl.textContent = nama;
+  textEl.classList.remove('placeholder');
+
+  let badge = trigger.querySelector('.combo-stok-badge');
+  if(!badge){
+    badge = document.createElement('span');
+    badge.className = 'combo-stok-badge';
+    trigger.insertBefore(badge, trigger.querySelector('.combo-chevron'));
+  }
+  badge.textContent = tersedia<=0 ? 'Habis' : `Sisa ${tersedia}`;
+  badge.className   = 'combo-stok-badge ' + stokBadgeClass(tersedia);
+
+  wrap.querySelectorAll('.combo-option').forEach(o=>o.classList.remove('is-selected'));
+  optBtn.classList.add('is-selected');
+
+  toggleCombo(trigger, true);
+}
+
+// tutup panel combo saat klik di luar atau tekan Esc
+document.addEventListener('click', (e)=>{
+  if(e.target.closest('.combo')) return;
+  document.querySelectorAll('.combo-panel').forEach(p=> p.hidden = true);
+  document.querySelectorAll('.combo-trigger.is-open').forEach(t=> t.classList.remove('is-open'));
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.combo-panel').forEach(p=> p.hidden = true);
+    document.querySelectorAll('.combo-trigger.is-open').forEach(t=> t.classList.remove('is-open'));
+  }
+});
 
 function addItemRow(){
   const rowId = uid();
@@ -1056,10 +1199,17 @@ function addItemRow(){
     <span class="item-index" style="display:none">Barang #${itemRowsEl.children.length + 1}</span>
     <div class="field">
       <label>Barang</label>
-      <select class="row-item">
-        <option value="">-- Pilih Barang --</option>
-        ${invOptionsHTML(null)}
-      </select>
+      <div class="combo">
+        <select class="row-item" hidden>
+          <option value="">-- Pilih Barang --</option>
+          ${invOptionsHTML(null)}
+        </select>
+        <button type="button" class="combo-trigger" onclick="toggleCombo(this)">
+          <span class="combo-trigger-text placeholder">-- Pilih Barang --</span>
+          <svg class="combo-chevron" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <div class="combo-panel" hidden>${invComboPanelHTML(null)}</div>
+      </div>
     </div>
     <div class="field">
       <label>Jml</label>
@@ -1918,9 +2068,22 @@ function escapeHtml(s){
 }
 function refreshFormDependents(){
   itemRowsEl.querySelectorAll('.item-row').forEach(row=>{
-    const sel     = row.querySelector('.row-item');
-    const current = sel.value;
-    sel.innerHTML = `<option value="">-- Pilih Barang --</option>${invOptionsHTML(current)}`;
+    const combo   = row.querySelector('.combo');
+    const select  = combo.querySelector('.row-item');
+    const current = select.value;
+
+    select.innerHTML = `<option value="">-- Pilih Barang --</option>${invOptionsHTML(current)}`;
+    combo.querySelector('.combo-panel').innerHTML = invComboPanelHTML(current);
+
+    // sinkronkan badge stok di trigger bila barang masih dipilih
+    if(current){
+      const invItem = inventory.find(i=>i.id===current);
+      const badge   = combo.querySelector('.combo-stok-badge');
+      if(invItem && badge){
+        badge.textContent = invItem.tersedia<=0 ? 'Habis' : `Sisa ${invItem.tersedia}`;
+        badge.className   = 'combo-stok-badge ' + stokBadgeClass(invItem.tersedia);
+      }
+    }
   });
 }
 
