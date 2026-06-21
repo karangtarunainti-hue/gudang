@@ -254,6 +254,7 @@ tbody tr:last-child td{border-bottom:none;}
   .toolbar{flex-direction:column; align-items:stretch; padding:14px 16px;}
   .toolbar-actions{justify-content:stretch;}
   .hist-search-wrap, .hist-filter-select{max-width:none; width:100%;}
+  #hist-delete-btn{width:100%;}
   .admin-grid{gap:14px;}
   .aset-search-bar input[type=search]{ max-width:none; }
   #admin-tbody, #hist-tbody{ display:block; }
@@ -612,6 +613,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
             <option value="selesai">✅ Selesai</option>
             <option value="bermasalah">⚠️ Bermasalah</option>
           </select>
+          <button id="hist-delete-btn" class="btn btn-ghost btn-sm" style="display:none; border-color:var(--brick); color:var(--brick);" onclick="deleteAllHistory()" title="Hanya transaksi berstatus Selesai yang akan dihapus">🗑️ Hapus Riwayat Selesai</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -631,6 +633,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
         <span class="glyph">🗒️</span>
         <p>Belum ada transaksi peminjaman tercatat.</p>
       </div>
+      <p id="hist-limit-note" class="muted" style="font-size:11.5px; margin:10px 2px 0; display:none;"></p>
     </div>
   </section>
 
@@ -798,7 +801,7 @@ function bgSyncTrx(onUpdate){
   Promise.all([
     sbGet('transactions?order=created_at.desc'),
     sbGet('transaction_items?select=*')
-  ]).then(([rows, items]) => {
+  ]).then(async ([rows, items]) => {
     const fresh = normTrx(rows, items);
     const sig = d => d.map(t=>t.id+t.status).join('|');
     if(sig(fresh) !== sig(transactions)){
@@ -807,6 +810,8 @@ function bgSyncTrx(onUpdate){
       if(onUpdate) onUpdate();
       showToast('🔄 Data peminjaman diperbarui.');
     }
+    await pruneOldHistory(); // bersihkan riwayat selesai yang sudah lama (aktif/bermasalah aman)
+    if(onUpdate) onUpdate();
   }).catch(() => {});
 }
 
@@ -1404,6 +1409,8 @@ function renderHistorisTable(){
       ? 'Tap status untuk mengubah keadaan transaksi.'
       : '🔒 Login sebagai admin untuk mengubah status transaksi.';
   }
+  const delBtn = document.getElementById('hist-delete-btn');
+  if(delBtn) delBtn.style.display = adminUnlocked ? 'inline-flex' : 'none';
 
   const q            = (document.getElementById('hist-search').value || '').toLowerCase();
   const statusFilter = document.getElementById('hist-filter').value;
@@ -1412,17 +1419,21 @@ function renderHistorisTable(){
     const matchS = !statusFilter || t.status === statusFilter;
     return matchQ && matchS;
   });
+  // transactions sudah terurut terbaru → terlama; tampilkan maksimal 10 saja
+  const totalFiltered = filtered.length;
+  const visible        = filtered.slice(0, HIST_KEEP);
+
   const tbody   = document.getElementById('hist-tbody');
   const emptyEl = document.getElementById('hist-empty');
 
   const statusLabel = {'aktif':'⏳ Aktif', 'selesai':'✅ Selesai', 'bermasalah':'⚠️ Bermasalah'};
 
-  if(filtered.length === 0){
+  if(visible.length === 0){
     tbody.innerHTML = '';
     emptyEl.style.display = 'block';
   } else {
     emptyEl.style.display = 'none';
-    tbody.innerHTML = filtered.map(t=>{
+    tbody.innerHTML = visible.map(t=>{
       const itemsText = t.items.map(it=>`${it.qty}× ${escapeHtml(it.nama)} <span style="color:var(--ink-soft); font-weight:600;">[${escapeHtml(it.gudang)}]</span>`).join('<br>');
 
       // Kolom status: dropdown jika admin, pill statis jika bukan
@@ -1445,6 +1456,43 @@ function renderHistorisTable(){
         <td data-label="Status" style="text-align:center;">${statusCell}</td>
       </tr>`;
     }).join('');
+  }
+
+  const limitNote = document.getElementById('hist-limit-note');
+  if(limitNote){
+    if(totalFiltered > HIST_KEEP){
+      limitNote.style.display = 'block';
+      limitNote.textContent = `Menampilkan ${HIST_KEEP} riwayat terbaru dari ${totalFiltered} yang cocok. Riwayat "Selesai" yang sudah lama otomatis dihapus dari database (maks. ${HIST_KEEP} disimpan); Aktif/Bermasalah tidak ikut terhapus.`;
+    } else {
+      limitNote.style.display = 'none';
+    }
+  }
+}
+
+/* ── Auto-prune: simpan maksimal 10 riwayat "Selesai" di database.
+   Aktif & Bermasalah TIDAK PERNAH diprune otomatis — supaya barang
+   yang belum dikembalikan tidak pernah hilang dari pencatatan. ── */
+const HIST_KEEP = 10;
+async function pruneOldHistory(){
+  // transactions sudah terurut terbaru → terlama (order=created_at.desc + unshift())
+  const selesai = transactions.filter(t=>t.status==='selesai');
+  if(selesai.length <= HIST_KEEP) return;
+
+  const toDelete = selesai.slice(HIST_KEEP); // sisanya yang lebih lama dari 10 teratas
+  const idList   = toDelete.map(t=>t.id).join(',');
+
+  try {
+    await sbDelete(`transaction_items?transaction_id=in.(${idList})`);
+  } catch(err){
+    console.warn('Prune transaction_items gagal:', err.message);
+  }
+  try {
+    await sbDelete(`transactions?id=in.(${idList})`);
+    const delIds = new Set(toDelete.map(t=>t.id));
+    transactions = transactions.filter(t=>!delIds.has(t.id));
+    lsSaveTrx(transactions);
+  } catch(err){
+    console.warn('Prune transactions gagal:', err.message);
   }
 }
 
@@ -1482,6 +1530,9 @@ async function changeStatus(id, newStatus){
     // update status di DB
     await sbPatch('transactions?id=eq.' + id, { status: newStatus });
     t.status = newStatus;
+    if(newStatus === 'selesai'){
+      await pruneOldHistory(); // jaga maksimal 10 riwayat selesai, sisanya auto-hapus
+    }
     showLoading(false);
     renderHistorisTable();
     showToast('Status transaksi diperbarui.');
@@ -1492,9 +1543,56 @@ async function changeStatus(id, newStatus){
   }
 }
 
-/* ============================================================
-   TAB ASET PUBLIK
-   ============================================================ */
+async function deleteAllHistory(){
+  // Blokir jika bukan admin — double-check di JS layer
+  if(!adminUnlocked){
+    showToast('🔒 Hanya admin yang dapat menghapus riwayat.');
+    return;
+  }
+  // Hanya transaksi yang sudah SELESAI yang boleh dihapus —
+  // antisipasi barang yang masih dipinjam (aktif/bermasalah) belum dikembalikan.
+  const selesai    = transactions.filter(t=>t.status==='selesai');
+  const belumSelesai = transactions.length - selesai.length;
+
+  if(selesai.length === 0){
+    showToast('Tidak ada riwayat berstatus "Selesai" yang bisa dihapus.');
+    return;
+  }
+
+  const ket = belumSelesai > 0
+    ? `\n\n(${belumSelesai} transaksi berstatus Aktif/Bermasalah akan TETAP DISIMPAN dan tidak terhapus.)`
+    : '';
+  const ok1 = confirm(`Hapus ${selesai.length} riwayat peminjaman yang berstatus "Selesai"?\n\nTindakan ini tidak dapat dibatalkan.${ket}`);
+  if(!ok1) return;
+  const ok2 = confirm('Konfirmasi sekali lagi: riwayat akan dihapus permanen dari server. Lanjutkan?');
+  if(!ok2) return;
+
+  const idList = selesai.map(t=>t.id).join(',');
+
+  showLoading(true);
+  try {
+    // hapus baris item dulu (anak), baru transaksi (induk), untuk menghindari constraint error
+    await sbDelete(`transaction_items?transaction_id=in.(${idList})`);
+  } catch(err){
+    // beberapa skema mungkin sudah ON DELETE CASCADE — abaikan error di tahap ini
+    console.warn('Hapus transaction_items:', err.message);
+  }
+  try {
+    await sbDelete(`transactions?id=in.(${idList})`);
+    const selesaiIds = new Set(selesai.map(t=>t.id));
+    transactions = transactions.filter(t=>!selesaiIds.has(t.id));
+    lsSaveTrx(transactions);
+    showLoading(false);
+    renderHistorisTable();
+    showToast(`✅ ${selesai.length} riwayat selesai berhasil dihapus.`);
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal menghapus riwayat: ' + err.message);
+    console.error(err);
+  }
+}
+
+
 function renderAsetPublik(){
   const q        = (document.getElementById('aset-search').value || '').toLowerCase();
   const filtered = inventory.filter(i => i.isActive && i.nama.toLowerCase().includes(q));
@@ -1620,6 +1718,10 @@ function refreshFormDependents(){
     lsSaveInv(inventory);
     lsSaveTrx(transactions);
     lsSaveSeq(_resiSeq);
+
+    // Bersihkan riwayat "Selesai" yang sudah lama (maks 10 disimpan).
+    // Aktif & Bermasalah tidak pernah ikut terhapus otomatis.
+    await pruneOldHistory();
 
     // Update UI yang sedang aktif
     renderAsetPublik();
