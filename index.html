@@ -391,6 +391,37 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 .aset-card-bar.habis{ background:var(--brick); }
 .aset-card-meta{ font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; border-top:1px dashed var(--line); padding-top:8px; margin-top:2px; }
 .aset-card-meta .meta-icon{ opacity:.6; }
+
+/* ── Kartu status stok gudang (tab Pinjam) ── */
+.stok-card{
+  position:relative; padding:22px 24px 20px; border-left:4px solid var(--sage);
+  background:linear-gradient(180deg, rgba(67,96,59,.05), transparent 65%);
+}
+.stok-card.warn{
+  border-left-color:var(--amber);
+  background:linear-gradient(180deg, rgba(146,103,15,.06), transparent 65%);
+}
+.stok-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap; }
+.stok-card-top .eyebrow{ margin:0 0 5px; }
+.stok-card-title{ margin:0; font-size:18px; line-height:1.25; }
+.stok-card-figure{ text-align:right; flex-shrink:0; }
+.stok-card-figure .num{ font-family:'Source Serif 4',serif; font-weight:700; font-size:36px; line-height:1; color:var(--sage); }
+.stok-card.warn .stok-card-figure .num{ color:var(--amber); }
+.stok-card-figure .lbl{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-soft); margin-top:3px; }
+.stok-card-desc{ font-size:12.5px; color:var(--ink-soft); margin:10px 0 0; max-width:480px; }
+.stok-card-detail{ margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); }
+.stok-card-row{ display:flex; justify-content:space-between; gap:14px; padding:10px 0; border-bottom:1px solid var(--line); }
+.stok-card-row:first-child{ padding-top:0; }
+.stok-card-row:last-child{ border-bottom:none; padding-bottom:0; }
+.stok-card-row .scr-name{ font-weight:700; font-size:13px; color:var(--ink); }
+.stok-card-row .scr-resi{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); margin-left:6px; }
+.stok-card-row .scr-items{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; line-height:1.5; }
+.stok-card-row .scr-right{ text-align:right; flex-shrink:0; }
+.stok-card-row .scr-status{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+.stok-card-row.aktif .scr-status{ color:var(--amber); }
+.stok-card-row.bermasalah .scr-status{ color:var(--brick); }
+.stok-card-row .scr-date{ display:block; font-size:11px; color:var(--ink-soft); margin-top:4px; }
+.stok-card-more{ font-size:11px; color:var(--ink-soft); text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); }
 .aset-publik-note{ font-size:11.5px; color:var(--ink-soft); text-align:center; margin-top:18px; padding-top:14px; border-top:1px dashed var(--line); }
 .aset-search-bar{ display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
 .aset-search-bar input[type=search]{ flex:1; min-width:180px; padding:9px 12px; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper-dim); font-size:13px; font-family:inherit; outline:none; }
@@ -430,6 +461,9 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 
   <!-- ============ TAB: PEMINJAM ============ -->
   <section id="tab-peminjam" class="tab-panel active">
+    <div class="ledger" style="max-width:640px; margin:0 auto 16px;">
+      <div id="stok-status-card"></div>
+    </div>
     <div class="ledger" style="max-width:640px; margin:0 auto;">
       <div class="ledger-head">
         <div>
@@ -955,6 +989,12 @@ async function openPeminjamTab(){
     tglPinjamEl.value = new Date().toISOString().slice(0, 10);
   }
 
+  // muat status peminjaman (untuk kartu "sudah kembali / belum") dari cache dulu,
+  // lalu sinkron diam-diam di belakang
+  loadTrxFromCache();
+  renderStokRingkasanCard();
+  bgSyncTrx(() => renderStokRingkasanCard());
+
   // segarkan data stok di belakang juga di tab ini — supaya dropdown barang
   // & validasi jumlah tidak memakai angka stok yang sudah basi.
   bgSyncInv(() => refreshFormDependents());
@@ -1159,6 +1199,7 @@ document.getElementById('confirm-submit-btn').addEventListener('click', async fu
       status:'aktif', items: finalItems
     };
     transactions.unshift(trx); // tampil instan di histori tanpa menunggu reload
+    renderStokRingkasanCard();
 
     showLoading(false);
     openReceipt(trx);          // tampilkan bukti
@@ -1545,6 +1586,7 @@ async function changeStatus(id, newStatus){
     }
     showLoading(false);
     renderHistorisTable();
+    renderStokRingkasanCard();
     showToast('Status transaksi diperbarui.');
   } catch(err){
     showLoading(false);
@@ -1594,6 +1636,7 @@ async function deleteAllHistory(){
     lsSaveTrx(transactions);
     showLoading(false);
     renderHistorisTable();
+    renderStokRingkasanCard();
     showToast(`✅ ${selesai.length} riwayat selesai berhasil dihapus.`);
   } catch(err){
     showLoading(false);
@@ -1716,6 +1759,81 @@ async function downloadSatuTransaksiJPEG(id){
 
 
 
+/* ============================================================
+   KARTU STATUS STOK GUDANG (tab Pinjam)
+   Menunjukkan apakah seluruh barang yang pernah dipinjam
+   sudah kembali, atau masih ada yang belum + rinciannya.
+   ============================================================ */
+function renderStokRingkasanCard(){
+  const el = document.getElementById('stok-status-card');
+  if(!el) return;
+
+  const belumKembali = transactions.filter(t => t.status === 'aktif' || t.status === 'bermasalah');
+  const totalUnitBelumKembali = belumKembali.reduce((sum, t) => sum + t.items.reduce((s,it)=>s+it.qty, 0), 0);
+
+  if(belumKembali.length === 0){
+    el.innerHTML = `
+      <div class="stok-card ok">
+        <div class="stok-card-top">
+          <div>
+            <p class="eyebrow">Status Gudang</p>
+            <h3 class="stok-card-title">Semua Barang Sudah Kembali</h3>
+          </div>
+          <div class="stok-card-figure">
+            <span class="num">0</span>
+            <span class="lbl">Belum Kembali</span>
+          </div>
+        </div>
+        <p class="stok-card-desc">Tidak ada peminjaman yang sedang berjalan saat ini — seluruh aset desa berada di gudang dan siap dipinjam kembali.</p>
+      </div>`;
+    return;
+  }
+
+  // urutkan: bermasalah dulu, lalu aktif (transactions sudah terurut terbaru → terlama)
+  const sorted = [...belumKembali].sort((a,b)=>{
+    if(a.status !== b.status) return a.status === 'bermasalah' ? -1 : 1;
+    return 0;
+  });
+
+  const SHOW_MAX = 6;
+  const visible  = sorted.slice(0, SHOW_MAX);
+  const sisa     = sorted.length - visible.length;
+
+  const statusLabel = {'aktif':'Aktif', 'bermasalah':'Bermasalah'};
+
+  const rows = visible.map(t=>{
+    const itemsText = t.items.map(it=>`${it.qty}× ${escapeHtml(it.nama)} (${escapeHtml(it.gudang)})`).join(', ');
+    return `
+      <div class="stok-card-row ${t.status}">
+        <div class="scr-left">
+          <span class="scr-name">${escapeHtml(t.nama)}</span><span class="scr-resi">#${escapeHtml(t.resi)}</span>
+          <div class="scr-items">${itemsText}</div>
+        </div>
+        <div class="scr-right">
+          <span class="scr-status">${statusLabel[t.status]}</span>
+          <span class="scr-date">Kembali: ${formatDate(t.tglKembali)}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="stok-card warn">
+      <div class="stok-card-top">
+        <div>
+          <p class="eyebrow">Status Gudang</p>
+          <h3 class="stok-card-title">Belum Semua Barang Kembali</h3>
+        </div>
+        <div class="stok-card-figure">
+          <span class="num">${totalUnitBelumKembali}</span>
+          <span class="lbl">Unit Belum Kembali</span>
+        </div>
+      </div>
+      <p class="stok-card-desc">${belumKembali.length} peminjaman masih berada di luar gudang. Rincian peminjaman yang belum dikembalikan:</p>
+      <div class="stok-card-detail">${rows}</div>
+      ${sisa > 0 ? `<p class="stok-card-more">+ ${sisa} peminjaman lain belum kembali — lihat selengkapnya di tab Histori.</p>` : ''}
+    </div>`;
+}
+
 function renderAsetPublik(){
   const q        = (document.getElementById('aset-search').value || '').toLowerCase();
   const filtered = inventory.filter(i => i.isActive && i.nama.toLowerCase().includes(q));
@@ -1824,6 +1942,7 @@ function refreshFormDependents(){
   addItemRow();
   document.getElementById('f-tgl-pinjam').value = new Date().toISOString().slice(0, 10);
   if(inventory.length) renderAsetPublik();
+  renderStokRingkasanCard();
 
   /* ── FASE 2: Sync Supabase di background (tidak memblokir UI) ── */
   try {
@@ -1849,6 +1968,7 @@ function refreshFormDependents(){
     // Update UI yang sedang aktif
     renderAsetPublik();
     refreshFormDependents();
+    renderStokRingkasanCard();
 
     // Jika tab historis sedang aktif, refresh tabelnya juga
     if(document.getElementById('tab-historis').classList.contains('active')){
