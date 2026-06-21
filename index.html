@@ -692,7 +692,7 @@ const sbGet    = (path)              => sbFetch(path, {method:'GET', prefer:''})
 const sbPost   = (path, body)        => sbFetch(path, {method:'POST', body: JSON.stringify(body)});
 const sbPatch  = (path, body)        => sbFetch(path, {method:'PATCH', body: JSON.stringify(body), prefer:'return=representation'});
 const sbDelete = (path)              => sbFetch(path, {method:'DELETE', prefer:''});
-const sbRpc    = (fn, body)          => sbFetch('../rpc/' + fn, {method:'POST', body: JSON.stringify(body), prefer:''});
+const sbRpc    = (fn, body)          => sbFetch('rpc/' + fn, {method:'POST', body: JSON.stringify(body), prefer:''});
 
 /* ============================================================
    DATA LAYER
