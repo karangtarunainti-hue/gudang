@@ -615,7 +615,6 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
             <option value="bermasalah">⚠️ Bermasalah</option>
           </select>
           <button id="hist-delete-btn" class="btn btn-ghost btn-sm" style="display:none; border-color:var(--brick); color:var(--brick);" onclick="deleteAllHistory()" title="Hanya transaksi berstatus Selesai yang akan dihapus">🗑️ Hapus Riwayat Selesai</button>
-          <button id="hist-download-btn" class="btn btn-navy btn-sm" onclick="downloadHistorisJPEG()" title="Unduh daftar peminjaman yang sedang ditampilkan sebagai gambar JPEG">📷 Download JPEG</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -626,6 +625,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
               <th>Barang &amp; Gudang</th>
               <th>Tanggal</th>
               <th style="text-align:center;">Status</th>
+              <th style="text-align:center;">Aksi</th>
             </tr>
           </thead>
           <tbody id="hist-tbody"></tbody>
@@ -1461,6 +1461,9 @@ function renderHistorisTable(){
         <td data-label="Barang &amp; Gudang" style="white-space:normal; min-width:200px;">${itemsText}</td>
         <td data-label="Tanggal" class="muted" style="white-space:normal; min-width:120px;">${formatDate(t.tglPinjam)} → ${formatDate(t.tglKembali)}</td>
         <td data-label="Status" style="text-align:center;">${statusCell}</td>
+        <td data-label="Aksi" style="text-align:center;">
+          <button class="icon-btn" onclick="downloadSatuTransaksiJPEG('${t.id}')" title="Unduh bukti peminjaman ini sebagai JPEG">📷</button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -1620,6 +1623,7 @@ function loadHtml2Canvas(){
 function buildHistorisExportNode(list){
   const statusLabel = {'aktif':'⏳ Aktif', 'selesai':'✅ Selesai', 'bermasalah':'⚠️ Bermasalah'};
   const printedAt    = new Date().toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'});
+  const isSingle     = list.length === 1;
 
   const wrap = document.createElement('div');
   wrap.className = 'receipt';
@@ -1633,9 +1637,9 @@ function buildHistorisExportNode(list){
   const head = `
     <div style="text-align:center; margin-bottom:20px;">
       <div class="stamp" style="margin:0 auto 10px;"><span>SD</span></div>
-      <p class="eyebrow" style="margin:0; color:var(--copper); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px;">Rekap Daftar Peminjaman</p>
+      <p class="eyebrow" style="margin:0; color:var(--copper); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px;">${isSingle ? 'Bukti Peminjaman' : 'Rekap Daftar Peminjaman'}</p>
       <h3 style="margin:6px 0 2px;">Sedesa — Buku Pinjam Aset Desa</h3>
-      <p class="resi-big" style="margin-bottom:0;">Dicetak ${printedAt} &middot; ${list.length} transaksi</p>
+      <p class="resi-big" style="margin-bottom:0;">${isSingle ? `Dicetak ${printedAt}` : `Dicetak ${printedAt} &middot; ${list.length} transaksi`}</p>
     </div>`;
 
   const body = list.map(t=>{
@@ -1657,10 +1661,10 @@ function buildHistorisExportNode(list){
   return wrap;
 }
 
-async function downloadHistorisJPEG(){
-  const list = getFilteredHistoris();
+/* ── Fungsi inti: render node lalu render jadi JPEG & unduh ── */
+async function exportTransaksiJPEG(list, opts = {}){
   if(list.length === 0){
-    showToast('Tidak ada riwayat untuk diunduh (cek pencarian/filter).');
+    showToast('Tidak ada riwayat untuk diunduh.');
     return;
   }
 
@@ -1674,16 +1678,18 @@ async function downloadHistorisJPEG(){
     const canvas  = await html2canvas(node, { scale: 2, backgroundColor: '#F6F1E7', useCORS: true });
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
-    const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    const stamp    = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    const filename = opts.filename || `rekap-peminjaman-${stamp}.jpg`;
+
     const a = document.createElement('a');
     a.href     = dataUrl;
-    a.download = `rekap-peminjaman-${stamp}.jpg`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
 
     showLoading(false);
-    showToast('📷 Rekap daftar peminjaman berhasil diunduh sebagai JPEG.');
+    showToast(opts.successMsg || '📷 Berhasil diunduh sebagai JPEG.');
   } catch(err){
     showLoading(false);
     showToast('Gagal membuat JPEG: ' + err.message);
@@ -1691,6 +1697,20 @@ async function downloadHistorisJPEG(){
   } finally {
     if(node) node.remove();
   }
+}
+
+/* ── Unduh JPEG untuk SATU transaksi peminjaman (tombol per baris) ── */
+async function downloadSatuTransaksiJPEG(id){
+  const t = transactions.find(x=>x.id===id);
+  if(!t){
+    showToast('Transaksi tidak ditemukan.');
+    return;
+  }
+  const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  await exportTransaksiJPEG([t], {
+    filename:   `bukti-pinjam-${t.resi}-${stamp}.jpg`,
+    successMsg: `📷 Bukti peminjaman #${t.resi} berhasil diunduh.`
+  });
 }
 
 
