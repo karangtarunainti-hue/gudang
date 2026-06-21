@@ -698,27 +698,42 @@ const sbDelete = (path)              => sbFetch(path, {method:'DELETE', prefer:'
 const sbRpc    = (fn, body)          => sbFetch('../rpc/' + fn, {method:'POST', body: JSON.stringify(body), prefer:''});
 
 /* ============================================================
-   DATA LAYER — selalu baca dari / tulis ke Supabase
+   DATA LAYER
+   Strategi: Cache-first (localStorage) → render instan →
+             background sync Supabase → update UI jika berubah
    ============================================================ */
 
-let inventory    = [];   // cache lokal sesi ini
-let transactions = [];   // cache lokal sesi ini
+const LS_INV  = 'sima_inventory_v2';
+const LS_TRX  = 'sima_transactions_v2';
+const LS_SEQ  = 'sima_resi_seq_v2';
 
-async function loadInv(){
-  const data = await sbGet('inventory?order=created_at.asc');
-  // normalise: snake_case → camelCase
-  inventory = data.map(r => ({
-    id: r.id, nama: r.nama, gudang: r.gudang,
-    total: r.total, tersedia: r.tersedia,
-    lastUpdated: r.last_updated
-  }));
-  return inventory;
+let inventory    = [];
+let transactions = [];
+let _resiSeq     = 1;
+
+/* ── localStorage helpers ── */
+function lsGetInv(){
+  try{ return JSON.parse(localStorage.getItem(LS_INV)) || []; }catch{ return []; }
 }
+function lsSaveInv(d){ try{ localStorage.setItem(LS_INV, JSON.stringify(d)); }catch{} }
 
-async function loadTrx(){
-  const rows = await sbGet('transactions?order=created_at.desc');
-  const items = await sbGet('transaction_items?select=*');
-  transactions = rows.map(r => ({
+function lsGetTrx(){
+  try{ return JSON.parse(localStorage.getItem(LS_TRX)) || []; }catch{ return []; }
+}
+function lsSaveTrx(d){ try{ localStorage.setItem(LS_TRX, JSON.stringify(d)); }catch{} }
+
+function lsGetSeq(){
+  try{ return parseInt(localStorage.getItem(LS_SEQ) || '1', 10); }catch{ return 1; }
+}
+function lsSaveSeq(n){ try{ localStorage.setItem(LS_SEQ, String(n)); }catch{} }
+
+/* ── normalise row dari Supabase ke format app ── */
+function normInv(r){
+  return { id: r.id, nama: r.nama, gudang: r.gudang,
+           total: r.total, tersedia: r.tersedia, lastUpdated: r.last_updated };
+}
+function normTrx(rows, items){
+  return rows.map(r => ({
     id: r.id, resi: r.resi, nama: r.nama, alamat: r.alamat, wa: r.wa,
     tglPinjam: r.tgl_pinjam, tglKembali: r.tgl_kembali,
     status: r.status, createdAt: r.created_at,
@@ -726,52 +741,101 @@ async function loadTrx(){
       .filter(it => it.transaction_id === r.id)
       .map(it => ({ itemId: it.item_id, nama: it.nama, gudang: it.gudang, qty: it.qty }))
   }));
+}
+
+/* ── LOAD: cache-first, lalu sync background ── */
+function loadInvFromCache(){
+  const cached = lsGetInv();
+  if(cached.length){ inventory = cached; }
+  return inventory;
+}
+function loadTrxFromCache(){
+  const cached = lsGetTrx();
+  if(cached.length){ transactions = cached; }
   return transactions;
 }
 
-async function saveInvItem(item){
-  // upsert: update jika ada, insert jika baru
-  await sbFetch('inventory?id=eq.' + item.id, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      nama: item.nama, gudang: item.gudang,
-      total: item.total, tersedia: item.tersedia,
-      last_updated: item.lastUpdated
-    }),
-    prefer: 'return=representation'
-  });
+async function loadInv(){
+  const data  = await sbGet('inventory?order=created_at.asc');
+  inventory   = data.map(normInv);
+  lsSaveInv(inventory);
+  return inventory;
 }
 
-async function insertInvItem(item){
-  const row = {
-    id: item.id, nama: item.nama, gudang: item.gudang,
-    total: item.total, tersedia: item.tersedia,
-    last_updated: item.lastUpdated
-  };
-  await sbPost('inventory', row);
+async function loadTrx(){
+  const rows  = await sbGet('transactions?order=created_at.desc');
+  const items = await sbGet('transaction_items?select=*');
+  transactions = normTrx(rows, items);
+  lsSaveTrx(transactions);
+  return transactions;
 }
 
-async function deleteInvItem(id){
-  await sbDelete('inventory?id=eq.' + id);
+/* Background sync — fetch tanpa loading veil, update UI jika ada perubahan */
+function bgSyncInv(onUpdate){
+  sbGet('inventory?order=created_at.asc')
+    .then(data => {
+      const fresh = data.map(normInv);
+      // bandingkan ringkas: jumlah item & tersedia total
+      const sig = d => d.map(i=>i.id+i.tersedia+i.total).join('|');
+      if(sig(fresh) !== sig(inventory)){
+        inventory = fresh;
+        lsSaveInv(inventory);
+        if(onUpdate) onUpdate();
+        showToast('🔄 Data aset diperbarui.');
+      }
+    })
+    .catch(() => {}); // silent — sudah ada data cache
 }
 
+function bgSyncTrx(onUpdate){
+  Promise.all([
+    sbGet('transactions?order=created_at.desc'),
+    sbGet('transaction_items?select=*')
+  ]).then(([rows, items]) => {
+    const fresh = normTrx(rows, items);
+    const sig = d => d.map(t=>t.id+t.status).join('|');
+    if(sig(fresh) !== sig(transactions)){
+      transactions = fresh;
+      lsSaveTrx(transactions);
+      if(onUpdate) onUpdate();
+      showToast('🔄 Data peminjaman diperbarui.');
+    }
+  }).catch(() => {});
+}
+
+/* ── Admin PIN ── */
 async function getAdminPin(){
-  const rows = await sbGet('admin_config?id=eq.1&select=pin_hash');
-  return (rows && rows[0]) ? rows[0].pin_hash : '1234';
+  try {
+    const rows = await sbGet('admin_config?id=eq.1&select=pin_hash');
+    const pin  = (rows && rows[0]) ? rows[0].pin_hash : '1234';
+    localStorage.setItem('sima_admin_pin', pin); // cache PIN juga
+    return pin;
+  } catch {
+    return localStorage.getItem('sima_admin_pin') || '1234';
+  }
 }
 
 async function setAdminPin(newPin){
   await sbPatch('admin_config?id=eq.1', { pin_hash: newPin });
+  localStorage.setItem('sima_admin_pin', newPin);
 }
 
+/* ── Resi sequence ── */
 async function getNextResi(){
-  const rows = await sbGet('resi_seq?id=eq.1&select=seq');
-  return (rows && rows[0]) ? rows[0].seq : 1;
+  try {
+    const rows = await sbGet('resi_seq?id=eq.1&select=seq');
+    const seq  = (rows && rows[0]) ? rows[0].seq : 1;
+    lsSaveSeq(seq);
+    return seq;
+  } catch {
+    return lsGetSeq();
+  }
 }
 
 async function incrementResiSeq(){
   const current = await getNextResi();
   await sbPatch('resi_seq?id=eq.1', { seq: current + 1 });
+  lsSaveSeq(current + 1);
   return current;
 }
 
@@ -853,29 +917,37 @@ function switchTab(name){
   } else {
     document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
   }
-  if(name==='admin') showAdminTab();
-  if(name==='historis') refreshAndRenderHistoris();
-  if(name==='aset') refreshAndRenderAset();
-  if(name==='peminjam') refreshResiPreview();
+  if(name==='admin')    showAdminTab();
+  if(name==='historis') openHistorisTab();
+  if(name==='aset')     openAsetTab();
+  if(name==='peminjam') openPeminjamTab();
+}
+
+/* Render dari cache dulu (instan), lalu sync background */
+function openHistorisTab(){
+  loadTrxFromCache();
+  renderHistorisTable();                       // langsung tampil dari cache
+  bgSyncTrx(() => renderHistorisTable());      // update diam-diam jika ada perubahan
+}
+
+function openAsetTab(){
+  loadInvFromCache();
+  renderAsetPublik();                          // langsung tampil dari cache
+  bgSyncInv(() => { renderAsetPublik(); refreshFormDependents(); });
+}
+
+async function openPeminjamTab(){
+  // preview resi: coba cache dulu, lalu update dari server
+  const cachedSeq = lsGetSeq();
+  document.getElementById('next-resi-preview').textContent = buildResiStr(cachedSeq);
+  getNextResi().then(seq => {
+    document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
+  }).catch(()=>{});
 }
 
 async function refreshResiPreview(){
   const seq = await getNextResi();
   document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
-}
-
-async function refreshAndRenderHistoris(){
-  showLoading(true);
-  await loadTrx();
-  showLoading(false);
-  renderHistorisTable();
-}
-
-async function refreshAndRenderAset(){
-  showLoading(true);
-  await loadInv();
-  showLoading(false);
-  renderAsetPublik();
 }
 
 /* ============================================================
@@ -1374,11 +1446,10 @@ function refreshFormDependents(){
    INIT — muat semua data dari Supabase saat halaman dibuka
    ============================================================ */
 (async function init(){
-  // Cek apakah konfigurasi sudah diisi
+  // Cek konfigurasi
   if(SUPABASE_URL.includes('XXXXXXXXXXXXXXXXXXXX') || SUPABASE_ANON_KEY.includes('XXXXXXXXXX')){
     showLoading(false);
     showToast('⚠️ Isi SUPABASE_URL & SUPABASE_ANON_KEY terlebih dahulu!');
-    // tampilkan banner peringatan
     document.querySelector('main').insertAdjacentHTML('afterbegin', `
       <div class="config-banner">
         ⚠️ <strong>Konfigurasi Supabase belum diisi.</strong>
@@ -1387,25 +1458,64 @@ function refreshFormDependents(){
         Dapatkan nilai tersebut dari <strong>app.supabase.com → Settings → API</strong>.
         Setelah itu jalankan SQL yang disertakan (<code>sima_desa_supabase.sql</code>) di Supabase SQL Editor.
       </div>`);
-    // init UI minimal tanpa data
     addItemRow();
     document.getElementById('next-resi-preview').textContent = 'TRX-001';
     return;
   }
 
-  showLoading(true);
+  /* ── FASE 1: Muat cache localStorage → tampil INSTAN (0ms loading) ── */
+  const cachedInv = lsGetInv();
+  const cachedTrx = lsGetTrx();
+  const cachedSeq = lsGetSeq();
+
+  if(cachedInv.length) inventory = cachedInv;
+  if(cachedTrx.length) transactions = cachedTrx;
+  _resiSeq = cachedSeq;
+
+  // Render UI langsung dari cache
+  showLoading(false);
+  addItemRow();
+  document.getElementById('next-resi-preview').textContent = buildResiStr(cachedSeq);
+  if(inventory.length) renderAsetPublik();
+
+  /* ── FASE 2: Sync Supabase di background (tidak memblokir UI) ── */
   try {
-    await loadInv();
-    await loadTrx();
-    const seq = await getNextResi();
-    showLoading(false);
-    addItemRow();
-    document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
+    const [invData, trxRows, trxItems, seqRows] = await Promise.all([
+      sbGet('inventory?order=created_at.asc'),
+      sbGet('transactions?order=created_at.desc'),
+      sbGet('transaction_items?select=*'),
+      sbGet('resi_seq?id=eq.1&select=seq')
+    ]);
+
+    inventory    = invData.map(normInv);
+    transactions = normTrx(trxRows, trxItems);
+    _resiSeq     = (seqRows && seqRows[0]) ? seqRows[0].seq : cachedSeq;
+
+    lsSaveInv(inventory);
+    lsSaveTrx(transactions);
+    lsSaveSeq(_resiSeq);
+
+    // Update UI yang sedang aktif
     renderAsetPublik();
+    refreshFormDependents();
+    document.getElementById('next-resi-preview').textContent = buildResiStr(_resiSeq);
+
+    // Jika tab historis sedang aktif, refresh tabelnya juga
+    if(document.getElementById('tab-historis').classList.contains('active')){
+      renderHistorisTable();
+    }
+
+    // Jika belum ada cache sama sekali, beri info singkat
+    if(!cachedInv.length && !cachedTrx.length){
+      showToast('✅ Data berhasil dimuat dari Supabase.');
+    }
   } catch(err){
-    showLoading(false);
-    showToast('Gagal terhubung ke Supabase: ' + err.message);
-    console.error(err);
+    console.warn('Supabase sync gagal, pakai data cache:', err.message);
+    if(!cachedInv.length && !cachedTrx.length){
+      showToast('⚠️ Offline — tidak ada data cache tersedia.');
+    } else {
+      showToast('📦 Menampilkan data cache (offline).');
+    }
   }
 })();
 </script>
