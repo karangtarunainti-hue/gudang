@@ -3,27 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ═══ PWA ═══ -->
-  <meta name="application-name" content="Sedesa">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Sedesa">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#1B2A4A">
-  <meta name="msapplication-TileColor" content="#1B2A4A">
-  <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
-
-  <!-- Manifest -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Apple Touch Icons -->
-  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512x512.png">
-
-  <!-- Favicon fallback -->
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
 <title>Sedesa — Buku Pinjam Aset Desa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -503,16 +482,37 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
 .aset-search-bar input[type=search]:focus{ border-color:var(--copper); }
 .aset-stats{ margin-bottom:22px; }
 
-/* ── PWA Install Button ── */
-#pwa-install-btn{
-  display:none; align-items:center; gap:6px; flex-shrink:0;
-  background:rgba(181,101,29,.18); border:1px solid var(--copper-light);
-  color:var(--copper-light); font-family:'Public Sans',sans-serif;
-  font-size:12.5px; font-weight:700; letter-spacing:.3px;
-  padding:8px 14px; border-radius:30px; cursor:pointer;
-  transition:background .15s, color .15s;
+/* ── Backup / Restore Panel ── */
+.backup-panel{
+  margin-top:24px; border:1px solid var(--line); border-radius:6px;
+  background:var(--card); overflow:hidden;
 }
-#pwa-install-btn:hover{ background:var(--copper); border-color:var(--copper); color:#fff; }
+.backup-panel-head{
+  padding:14px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+}
+.backup-panel-head h3{ margin:0; font-size:15px; font-weight:700; }
+.backup-panel-head .eyebrow{ margin:0 0 3px; font-size:10px; }
+.backup-actions{
+  display:flex; gap:8px; flex-wrap:wrap; padding:16px 20px;
+}
+.backup-actions .btn{ flex:1; min-width:140px; }
+.backup-drop{
+  margin:0 20px 16px; padding:18px; border:2px dashed var(--line-strong);
+  border-radius:6px; text-align:center; cursor:pointer;
+  font-size:13px; color:var(--ink-soft); transition:border-color .15s, background .15s;
+}
+.backup-drop:hover, .backup-drop.drag-over{
+  border-color:var(--copper); background:var(--amber-bg); color:var(--copper);
+}
+.backup-drop strong{ display:block; font-size:14px; color:var(--ink); margin-bottom:4px; }
+.backup-log{
+  margin:0 20px 16px; padding:12px 14px; background:var(--paper-dim);
+  border:1px solid var(--line); border-radius:4px;
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-soft);
+  max-height:120px; overflow-y:auto; display:none; white-space:pre-wrap; line-height:1.6;
+}
+
 </style>
 </head>
 <body>
@@ -643,6 +643,31 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
         <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="lockAdmin()">🔒 Kunci</button>
       </div>
       <div class="stats" id="admin-stats"></div>
+
+      
+      <!-- ── Panel Backup & Restore ── -->
+      <div class="backup-panel" id="backup-panel">
+        <div class="backup-panel-head">
+          <div>
+            <p class="eyebrow" style="color:var(--copper);">Data Gudang</p>
+            <h3>Backup &amp; Restore</h3>
+          </div>
+          <span style="font-size:11.5px; color:var(--ink-soft);">Ekspor semua data inventory &amp; transaksi ke JSON, atau impor kembali dari file backup.</span>
+        </div>
+        <div class="backup-actions">
+          <button class="btn btn-navy" onclick="backupExport()">⬇ Export JSON</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('backup-file-input').click()">⬆ Import JSON</button>
+          <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="backupImport(this)">
+        </div>
+        <div class="backup-drop" id="backup-drop"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="backupDrop(event)">
+          <strong>Drag &amp; drop file backup di sini</strong>
+          atau klik tombol Import di atas
+        </div>
+        <pre class="backup-log" id="backup-log"></pre>
+      </div>
 
       <div class="admin-grid">
         <div class="ledger" style="height:fit-content;">
@@ -2206,70 +2231,208 @@ function refreshFormDependents(){
     }
   }
 })();
-</script>
 
-<script>
-/* ── Service Worker Registration (PWA) ── */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        console.log('[PWA] Service Worker terdaftar:', reg.scope);
+/* ============================================================
+   BACKUP & RESTORE — Export / Import JSON
+   ============================================================ */
 
-        // Cek update SW saat halaman dimuat ulang
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Ada versi baru — tampilkan toast
-              const toast = document.getElementById('toast');
-              if (toast) {
-                toast.textContent = '🔄 Pembaruan tersedia. Muat ulang halaman untuk menerapkan.';
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 5000);
-              }
-            }
-          });
-        });
-      })
-      .catch(err => console.warn('[PWA] Gagal mendaftar SW:', err));
-  });
+function backupLog(msg, clear=false){
+  const el = document.getElementById('backup-log');
+  el.style.display = 'block';
+  if(clear) el.textContent = '';
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
 }
 
-/* ── Install Prompt (tombol "Pasang Aplikasi") ── */
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
+/* ── Export ── */
+function backupExport(){
+  const now  = new Date();
+  const stamp = now.toISOString().slice(0,19).replace(/[T:]/g,'-');
+
+  const payload = {
+    _meta: {
+      app:       'Sedesa',
+      version:   '1.0',
+      exported:  now.toISOString(),
+      inventory_count:    inventory.length,
+      transaction_count:  transactions.length,
+    },
+    inventory,
+    transactions,
+    resi_seq: _resiSeq,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `sedesa-backup-${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  backupLog(`✅ Export selesai: ${inventory.length} aset, ${transactions.length} transaksi.`, true);
+  showToast('⬇ Backup berhasil diunduh.');
+}
+
+/* ── Drop zone ── */
+function backupDrop(e){
   e.preventDefault();
-  deferredPrompt = e;
+  document.getElementById('backup-drop').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) processBackupFile(file);
+}
 
-  // Tampilkan tombol install jika tersedia di halaman
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
+/* ── Import via input ── */
+function backupImport(input){
+  const file = input.files[0];
+  if(file) processBackupFile(file);
+  input.value = ''; // reset agar file yang sama bisa diimpor ulang
+}
 
-function pwaInstall() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(choice => {
-    if (choice.outcome === 'accepted') {
-      const btn = document.getElementById('pwa-install-btn');
-      if (btn) btn.style.display = 'none';
-      const toast = document.getElementById('toast');
-      if (toast) {
-        toast.textContent = '✅ Sedesa berhasil dipasang di perangkat!';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3500);
+/* ── Proses file backup ── */
+function processBackupFile(file){
+  if(!file.name.endsWith('.json')){
+    backupLog('❌ File harus berformat .json', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    backupLog('📂 Membaca file: ' + file.name, true);
+
+    let data;
+    try {
+      data = JSON.parse(e.target.result);
+    } catch {
+      backupLog('❌ File tidak valid atau rusak (bukan JSON).');
+      return;
+    }
+
+    // Validasi struktur
+    if(!data.inventory || !Array.isArray(data.inventory)){
+      backupLog('❌ Format backup tidak dikenali. Pastikan file berasal dari Sedesa.');
+      return;
+    }
+
+    const invCount = data.inventory.length;
+    const trxCount = (data.transactions || []).length;
+    backupLog(`📦 Ditemukan: ${invCount} aset, ${trxCount} transaksi.`);
+
+    // Konfirmasi
+    const ok = confirm(
+      `Import data backup?\n\n` +
+      `• ${invCount} data aset/inventory\n` +
+      `• ${trxCount} data transaksi\n\n` +
+      `⚠️ Data yang ada di Supabase TIDAK akan dihapus.\n` +
+      `Import hanya menambah/memperbarui data yang belum ada.`
+    );
+    if(!ok){ backupLog('↩ Import dibatalkan.'); return; }
+
+    // Jalankan import
+    await doImport(data);
+  };
+  reader.readAsText(file);
+}
+
+/* ── Eksekusi import ke Supabase ── */
+async function doImport(data){
+  let invOk = 0, invSkip = 0, trxOk = 0, trxSkip = 0;
+
+  backupLog('⏳ Mengimpor data aset...');
+  for(const item of data.inventory){
+    try {
+      // Upsert berdasarkan id — jika sudah ada, diperbarui; jika baru, ditambah
+      await sbFetch('inventory?id=eq.' + item.id, {
+        method: 'POST',
+        prefer: 'resolution=merge-duplicates,return=representation',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({
+          id:           item.id,
+          nama:         item.nama,
+          gudang:       item.gudang,
+          total:        item.total,
+          tersedia:     item.tersedia,
+          last_updated: item.lastUpdated || null,
+          is_active:    item.isActive !== false,
+        })
+      });
+      invOk++;
+    } catch(err) {
+      backupLog(`  ⚠️ Aset "${item.nama}" gagal: ${err.message}`);
+      invSkip++;
+    }
+  }
+  backupLog(`✅ Aset: ${invOk} berhasil, ${invSkip} gagal.`);
+
+  if(data.transactions && data.transactions.length){
+    backupLog('⏳ Mengimpor transaksi...');
+    for(const trx of data.transactions){
+      try {
+        await sbFetch('transactions?id=eq.' + trx.id, {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body: JSON.stringify({
+            id:          trx.id,
+            resi:        trx.resi,
+            nama:        trx.nama,
+            alamat:      trx.alamat,
+            wa:          trx.wa,
+            tgl_pinjam:  trx.tglPinjam,
+            tgl_kembali: trx.tglKembali,
+            status:      trx.status,
+            created_at:  trx.createdAt,
+          })
+        });
+
+        // Upsert items transaksi
+        for(const it of (trx.items || [])){
+          await sbFetch('transaction_items', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify({
+              transaction_id: trx.id,
+              item_id:        it.itemId,
+              nama:           it.nama,
+              gudang:         it.gudang,
+              qty:            it.qty,
+            })
+          });
+        }
+        trxOk++;
+      } catch(err) {
+        backupLog(`  ⚠️ Transaksi ${trx.resi} gagal: ${err.message}`);
+        trxSkip++;
       }
     }
-    deferredPrompt = null;
-  });
+    backupLog(`✅ Transaksi: ${trxOk} berhasil, ${trxSkip} gagal.`);
+  }
+
+  // Update resi_seq jika backup lebih tinggi
+  if(data.resi_seq && data.resi_seq > _resiSeq){
+    try {
+      await sbPatch('resi_seq?id=eq.1', { seq: data.resi_seq });
+      _resiSeq = data.resi_seq;
+      lsSaveSeq(_resiSeq);
+      backupLog(`✅ Nomor resi diperbarui ke ${data.resi_seq}.`);
+    } catch(err){
+      backupLog(`⚠️ Gagal update resi_seq: ${err.message}`);
+    }
+  }
+
+  // Reload data dari Supabase
+  backupLog('🔄 Memuat ulang data...');
+  try {
+    await Promise.all([loadInv(), loadTrx()]);
+    renderAdminTable();
+    renderAsetPublik();
+    renderStokRingkasanCard();
+    backupLog('🎉 Import selesai! Data sudah diperbarui.');
+    showToast('✅ Import backup berhasil.');
+  } catch(err){
+    backupLog('⚠️ Gagal reload: ' + err.message);
+  }
 }
 
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  deferredPrompt = null;
-});
 </script>
 </body>
 </html>
