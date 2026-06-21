@@ -255,6 +255,7 @@ tbody tr:last-child td{border-bottom:none;}
   .toolbar-actions{justify-content:stretch;}
   .hist-search-wrap, .hist-filter-select{max-width:none; width:100%;}
   #hist-delete-btn{width:100%;}
+  #hist-download-btn{width:100%;}
   .admin-grid{gap:14px;}
   .aset-search-bar input[type=search]{ max-width:none; }
   #admin-tbody, #hist-tbody{ display:block; }
@@ -614,6 +615,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
             <option value="bermasalah">⚠️ Bermasalah</option>
           </select>
           <button id="hist-delete-btn" class="btn btn-ghost btn-sm" style="display:none; border-color:var(--brick); color:var(--brick);" onclick="deleteAllHistory()" title="Hanya transaksi berstatus Selesai yang akan dihapus">🗑️ Hapus Riwayat Selesai</button>
+          <button id="hist-download-btn" class="btn btn-navy btn-sm" onclick="downloadHistorisJPEG()" title="Unduh daftar peminjaman yang sedang ditampilkan sebagai gambar JPEG">📷 Download JPEG</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -1401,6 +1403,17 @@ async function aktifkanStok(id){
 /* ============================================================
    HISTORIS
    ============================================================ */
+/* ── Helper bersama: ambil transaksi yang cocok dengan pencarian & filter status ── */
+function getFilteredHistoris(){
+  const q            = (document.getElementById('hist-search').value || '').toLowerCase();
+  const statusFilter = document.getElementById('hist-filter').value;
+  return transactions.filter(t=>{
+    const matchQ = t.resi.toLowerCase().includes(q) || t.nama.toLowerCase().includes(q);
+    const matchS = !statusFilter || t.status === statusFilter;
+    return matchQ && matchS;
+  });
+}
+
 function renderHistorisTable(){
   // update subtitle sesuai status admin
   const subtitle = document.getElementById('hist-subtitle');
@@ -1412,13 +1425,7 @@ function renderHistorisTable(){
   const delBtn = document.getElementById('hist-delete-btn');
   if(delBtn) delBtn.style.display = adminUnlocked ? 'inline-flex' : 'none';
 
-  const q            = (document.getElementById('hist-search').value || '').toLowerCase();
-  const statusFilter = document.getElementById('hist-filter').value;
-  const filtered     = transactions.filter(t=>{
-    const matchQ = t.resi.toLowerCase().includes(q) || t.nama.toLowerCase().includes(q);
-    const matchS = !statusFilter || t.status === statusFilter;
-    return matchQ && matchS;
-  });
+  const filtered = getFilteredHistoris();
   // transactions sudah terurut terbaru → terlama; tampilkan maksimal 10 saja
   const totalFiltered = filtered.length;
   const visible        = filtered.slice(0, HIST_KEEP);
@@ -1591,6 +1598,102 @@ async function deleteAllHistory(){
     console.error(err);
   }
 }
+
+/* ============================================================
+   DOWNLOAD LOG PEMINJAMAN SEBAGAI JPEG
+   (format visual disamakan dengan "Bukti Pengajuan" / rekap barang)
+   ============================================================ */
+let _html2canvasLoading = null;
+function loadHtml2Canvas(){
+  if(window.html2canvas) return Promise.resolve();
+  if(_html2canvasLoading) return _html2canvasLoading;
+  _html2canvasLoading = new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => { _html2canvasLoading = null; reject(new Error('Gagal memuat library JPEG dari CDN. Periksa koneksi internet.')); };
+    document.head.appendChild(s);
+  });
+  return _html2canvasLoading;
+}
+
+function buildHistorisExportNode(list){
+  const statusLabel = {'aktif':'⏳ Aktif', 'selesai':'✅ Selesai', 'bermasalah':'⚠️ Bermasalah'};
+  const printedAt    = new Date().toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'});
+
+  const wrap = document.createElement('div');
+  wrap.className = 'receipt';
+  wrap.style.position   = 'fixed';
+  wrap.style.left        = '-9999px';
+  wrap.style.top         = '0';
+  wrap.style.width       = '460px';
+  wrap.style.maxWidth    = 'none';
+  wrap.style.boxShadow   = 'none';
+
+  const head = `
+    <div style="text-align:center; margin-bottom:20px;">
+      <div class="stamp" style="margin:0 auto 10px;"><span>SD</span></div>
+      <p class="eyebrow" style="margin:0; color:var(--copper); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px;">Rekap Daftar Peminjaman</p>
+      <h3 style="margin:6px 0 2px;">Sedesa — Buku Pinjam Aset Desa</h3>
+      <p class="resi-big" style="margin-bottom:0;">Dicetak ${printedAt} &middot; ${list.length} transaksi</p>
+    </div>`;
+
+  const body = list.map(t=>{
+    const itemsLines = t.items.map(it=>
+      `<div class="receipt-line"><span>Barang</span><b>${it.qty}&times; ${escapeHtml(it.nama)} (${escapeHtml(it.gudang)})</b></div>`
+    ).join('');
+    return `
+    <div style="margin-bottom:18px; padding-bottom:14px; border-bottom:1.5px dashed var(--line-strong);">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+        <h3 style="margin:0; font-size:15px;">${escapeHtml(t.nama)}</h3>
+        <span class="pill ${t.status}" style="font-size:10.5px; flex-shrink:0;">${statusLabel[t.status] || t.status}</span>
+      </div>
+      <p class="resi-big" style="margin:2px 0 8px;">#${escapeHtml(t.resi)} &middot; ${formatDate(t.tglPinjam)} → ${formatDate(t.tglKembali)}</p>
+      ${itemsLines}
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = head + body;
+  return wrap;
+}
+
+async function downloadHistorisJPEG(){
+  const list = getFilteredHistoris();
+  if(list.length === 0){
+    showToast('Tidak ada riwayat untuk diunduh (cek pencarian/filter).');
+    return;
+  }
+
+  showLoading(true);
+  let node = null;
+  try {
+    await loadHtml2Canvas();
+    node = buildHistorisExportNode(list);
+    document.body.appendChild(node);
+
+    const canvas  = await html2canvas(node, { scale: 2, backgroundColor: '#F6F1E7', useCORS: true });
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    const a = document.createElement('a');
+    a.href     = dataUrl;
+    a.download = `rekap-peminjaman-${stamp}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    showLoading(false);
+    showToast('📷 Rekap daftar peminjaman berhasil diunduh sebagai JPEG.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal membuat JPEG: ' + err.message);
+    console.error(err);
+  } finally {
+    if(node) node.remove();
+  }
+}
+
+
 
 
 function renderAsetPublik(){
