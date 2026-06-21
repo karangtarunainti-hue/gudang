@@ -730,7 +730,8 @@ function lsSaveSeq(n){ try{ localStorage.setItem(LS_SEQ, String(n)); }catch{} }
 /* ── normalise row dari Supabase ke format app ── */
 function normInv(r){
   return { id: r.id, nama: r.nama, gudang: r.gudang,
-           total: r.total, tersedia: r.tersedia, lastUpdated: r.last_updated };
+           total: r.total, tersedia: r.tersedia, lastUpdated: r.last_updated,
+           isActive: r.is_active !== false };
 }
 function normTrx(rows, items){
   return rows.map(r => ({
@@ -973,7 +974,7 @@ const itemRowsEl = document.getElementById('item-rows');
 function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
 
 function invOptionsHTML(selectedId){
-  return inventory.map(i=>{
+  return inventory.filter(i=>i.isActive).map(i=>{
     const disabled = i.tersedia <= 0 ? 'disabled' : '';
     const label = `${i.nama} (${i.gudang} — Sisa ${i.tersedia})`;
     const sel = i.id===selectedId ? 'selected' : '';
@@ -1167,16 +1168,22 @@ function renderAdminTable(){
     emptyEl.style.display = 'none';
     tbody.innerHTML = filtered.map(i=>{
       const low = i.tersedia <= Math.max(1, Math.round(i.total*0.1));
+      const namaLabel = i.isActive
+        ? escapeHtml(i.nama)
+        : `${escapeHtml(i.nama)} <span class="pill" style="border-style:dashed; color:var(--muted); font-size:11px;">Nonaktif</span>`;
+      const actionBtn = i.isActive
+        ? `<button class="icon-btn danger" title="Hapus / Nonaktifkan" onclick="deleteStok('${i.id}')">🗑</button>`
+        : `<button class="icon-btn" title="Aktifkan kembali" onclick="aktifkanStok('${i.id}')">↺</button>`;
       return `
       <tr>
-        <td data-label="Barang" style="font-weight:600;">${escapeHtml(i.nama)}</td>
+        <td data-label="Barang" style="font-weight:600;">${namaLabel}</td>
         <td data-label="Lokasi"><span class="pill" style="border-style:solid; color:var(--navy); background:#E9EDF5;">${escapeHtml(i.gudang)}</span></td>
         <td data-label="Tersedia" style="text-align:center;" class="${low?'qty-low':'qty-ok'}">${i.tersedia}</td>
         <td data-label="Total" style="text-align:center;" class="muted">${i.total}</td>
         <td data-label="">
           <div class="row-actions">
             <button class="icon-btn" title="Edit" onclick="editStok('${i.id}')">✎</button>
-            <button class="icon-btn danger" title="Hapus" onclick="deleteStok('${i.id}')">🗑</button>
+            ${actionBtn}
           </div>
         </td>
       </tr>`;
@@ -1258,10 +1265,50 @@ async function deleteStok(id){
   } catch(err){
     showLoading(false);
     if(err.message && err.message.includes('23503')){
-      showToast('Aset tidak bisa dihapus karena masih punya riwayat transaksi.');
+      // masih punya riwayat transaksi -> tawarkan nonaktifkan saja
+      const mauNonaktif = confirm(
+        `"${item.nama}" tidak bisa dihapus permanen karena masih punya riwayat transaksi.\n\nNonaktifkan aset ini saja? (tidak akan tampil di daftar aktif, tapi riwayat transaksi lama tetap aman)`
+      );
+      if(mauNonaktif){
+        await nonaktifkanStok(id);
+      }
     } else {
       showToast('Gagal menghapus: ' + err.message);
     }
+    console.error(err);
+  }
+}
+
+async function nonaktifkanStok(id){
+  const item = inventory.find(i=>i.id===id);
+  if(!item) return;
+  showLoading(true);
+  try {
+    await sbPatch('inventory?id=eq.' + id, { is_active: false });
+    item.isActive = false;
+    showLoading(false);
+    renderAdminTable();
+    showToast('Aset dinonaktifkan.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal menonaktifkan: ' + err.message);
+    console.error(err);
+  }
+}
+
+async function aktifkanStok(id){
+  const item = inventory.find(i=>i.id===id);
+  if(!item) return;
+  showLoading(true);
+  try {
+    await sbPatch('inventory?id=eq.' + id, { is_active: true });
+    item.isActive = true;
+    showLoading(false);
+    renderAdminTable();
+    showToast('Aset diaktifkan kembali.');
+  } catch(err){
+    showLoading(false);
+    showToast('Gagal mengaktifkan: ' + err.message);
     console.error(err);
   }
 }
@@ -1374,7 +1421,7 @@ async function changeStatus(id, newStatus){
    ============================================================ */
 function renderAsetPublik(){
   const q        = (document.getElementById('aset-search').value || '').toLowerCase();
-  const filtered = inventory.filter(i => i.nama.toLowerCase().includes(q));
+  const filtered = inventory.filter(i => i.isActive && i.nama.toLowerCase().includes(q));
 
   const gudangMap   = {};
   const gudangOrder = [];
