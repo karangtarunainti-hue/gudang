@@ -651,6 +651,19 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
   </div>
 </div>
 
+<!-- Confirm-before-submit modal -->
+<div class="overlay" id="confirm-overlay">
+  <div class="receipt">
+    <button class="close-x" onclick="closeConfirmPinjam()">✕</button>
+    <p class="eyebrow" style="margin:0; color:var(--copper); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px;">Periksa Sebelum Mengirim</p>
+    <h3 style="margin:6px 0 2px; font-size:16px;">Pastikan data di bawah sudah benar</h3>
+    <p style="font-size:12px; color:var(--ink-soft); margin:0 0 14px;">Setelah dikirim, stok barang langsung berkurang dan data tersimpan di server. Periksa nama barang &amp; jumlah dengan teliti.</p>
+    <div id="confirm-lines"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:18px;" id="confirm-submit-btn">Ya, Sudah Benar — Kirim</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closeConfirmPinjam()">Periksa Lagi</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1007,7 +1020,11 @@ function renumberItemRows(){
   });
 }
 
-document.getElementById('form-pinjam').addEventListener('submit', async function(e){
+/* Menyimpan data form yang sudah divalidasi, menunggu konfirmasi user
+   sebelum benar-benar dikirim ke server. */
+let _pendingPinjam = null;
+
+document.getElementById('form-pinjam').addEventListener('submit', function(e){
   e.preventDefault();
   const nama       = document.getElementById('f-nama').value.trim();
   const alamat     = document.getElementById('f-alamat').value.trim();
@@ -1043,6 +1060,37 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
     const invItem = inventory.find(i=>i.id===it.itemId);
     if(it.qty > invItem.tersedia){ showToast(`Total ${it.nama} melebihi stok tersedia (${invItem.tersedia}).`); return; }
   }
+
+  // Validasi lolos — simpan sebagai pending, lalu tampilkan recap untuk
+  // dikonfirmasi peminjam sebelum benar-benar tersimpan & stok berkurang.
+  // Ini mengantisipasi salah pilih barang/jumlah yang baru disadari saat
+  // melihat ringkasan, sebelum data terkirim ke server & WhatsApp admin.
+  _pendingPinjam = { nama, alamat, wa, tglPinjam, tglKembali, finalItems, formEl: this };
+  openConfirmPinjam(_pendingPinjam);
+});
+
+function openConfirmPinjam(p){
+  const lines = [
+    ['Nama', p.nama],
+    ['Alamat', p.alamat],
+    ['Pencatat', p.wa],
+    ['Tgl Pinjam', formatDate(p.tglPinjam)],
+    ['Rencana Kembali', formatDate(p.tglKembali)],
+    ...p.finalItems.map(it=>['Barang', `${it.qty}× ${it.nama} (${it.gudang})`])
+  ];
+  document.getElementById('confirm-lines').innerHTML = lines.map(([k,v])=>
+    `<div class="receipt-line"><span>${k}</span><b>${v}</b></div>`).join('');
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+
+function closeConfirmPinjam(){
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+
+document.getElementById('confirm-submit-btn').addEventListener('click', async function(){
+  if(!_pendingPinjam) return;
+  const { nama, alamat, wa, tglPinjam, tglKembali, finalItems, formEl } = _pendingPinjam;
+  closeConfirmPinjam();
 
   showLoading(true);
   try {
@@ -1106,12 +1154,14 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
     transactions.unshift(trx); // tampil instan di histori tanpa menunggu reload
 
     showLoading(false);
-    openReceipt(trx);
-    this.reset();
+    openReceipt(trx);          // tampilkan bukti
+    autoSendWaToAdmin(trx);    // langsung buka WhatsApp ke admin — satu alur dengan submit
+    formEl.reset();
     document.getElementById('f-tgl-pinjam').value = new Date().toISOString().slice(0, 10);
     itemRowsEl.innerHTML = '';
     addItemRow();
     showToast('Peminjaman berhasil disimpan.');
+    _pendingPinjam = null;
 
     // 5. sinkronisasi ulang di belakang — TIDAK dianggap "gagal simpan" jika error,
     //    karena transaksi & pengurangan stok di atas sudah sukses tercatat di server.
@@ -1127,6 +1177,24 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
 /* ============================================================
    RECEIPT MODAL
    ============================================================ */
+function buildWaMessage(trx){
+  const itemsText = trx.items.map(it=>`- ${it.qty}× ${it.nama} (${it.gudang})`).join('%0A');
+  return `*PENGAJUAN PINJAM ASET DESA*%0AResi: ${trx.resi}%0ANama: ${trx.nama}%0AAlamat: ${trx.alamat}%0ATgl Pinjam: ${formatDate(trx.tglPinjam)}%0ARencana Kembali: ${formatDate(trx.tglKembali)}%0A%0ABarang:%0A${itemsText}`;
+}
+
+/* Dipanggil otomatis setelah submit berhasil, jadi peminjam tidak perlu
+   klik tombol terpisah lagi — submit form & kirim WA jadi satu alur.
+   Tetap memakai window.open (bukan langsung redirect) supaya tab form
+   tidak hilang kalau popup-nya tertutup oleh peminjam. */
+function autoSendWaToAdmin(trx){
+  const msg = buildWaMessage(trx);
+  const win = window.open(`https://wa.me/?text=${msg}`, '_blank');
+  if(!win){
+    // popup diblokir browser — beri tahu user supaya pakai tombol manual di bukti
+    showToast('Popup diblokir — klik tombol "Kirim ke WhatsApp Admin" pada bukti untuk mengirim manual.');
+  }
+}
+
 function openReceipt(trx){
   document.getElementById('r-resi-title').textContent = trx.nama;
   document.getElementById('r-resi-id').textContent    = '#' + trx.resi;
@@ -1140,10 +1208,8 @@ function openReceipt(trx){
   document.getElementById('r-lines').innerHTML = lines.map(([k,v])=>
     `<div class="receipt-line"><span>${k}</span><b>${v}</b></div>`).join('');
 
-  const itemsText = trx.items.map(it=>`- ${it.qty}× ${it.nama} (${it.gudang})`).join('%0A');
-  const msg = `*PENGAJUAN PINJAM ASET DESA*%0AResi: ${trx.resi}%0ANama: ${trx.nama}%0AAlamat: ${trx.alamat}%0ATgl Pinjam: ${formatDate(trx.tglPinjam)}%0ARencana Kembali: ${formatDate(trx.tglKembali)}%0A%0ABarang:%0A${itemsText}`;
   document.getElementById('r-wa-btn').onclick = ()=>{
-    window.open(`https://wa.me/?text=${msg}`, '_blank');
+    window.open(`https://wa.me/?text=${buildWaMessage(trx)}`, '_blank');
   };
   document.getElementById('receipt-overlay').classList.add('show');
 }
