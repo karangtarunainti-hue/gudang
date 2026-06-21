@@ -933,13 +933,6 @@ function openAsetTab(){
 }
 
 async function openPeminjamTab(){
-  // preview resi: coba cache dulu, lalu update dari server
-  const cachedSeq = lsGetSeq();
-  document.getElementById('next-resi-preview').textContent = buildResiStr(cachedSeq);
-  getNextResi().then(seq => {
-    document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
-  }).catch(()=>{});
-
   // default tanggal pinjam = hari ini
   const tglPinjamEl = document.getElementById('f-tgl-pinjam');
   if(!tglPinjamEl.value){
@@ -949,11 +942,6 @@ async function openPeminjamTab(){
   // segarkan data stok di belakang juga di tab ini — supaya dropdown barang
   // & validasi jumlah tidak memakai angka stok yang sudah basi.
   bgSyncInv(() => refreshFormDependents());
-}
-
-async function refreshResiPreview(){
-  const seq = await getNextResi();
-  document.getElementById('next-resi-preview').textContent = buildResiStr(seq);
 }
 
 /* ============================================================
@@ -1124,13 +1112,13 @@ document.getElementById('form-pinjam').addEventListener('submit', async function
     showLoading(false);
     openReceipt(trx);
     this.reset();
+    document.getElementById('f-tgl-pinjam').value = new Date().toISOString().slice(0, 10);
     itemRowsEl.innerHTML = '';
     addItemRow();
     showToast('Peminjaman berhasil disimpan.');
 
     // 5. sinkronisasi ulang di belakang — TIDAK dianggap "gagal simpan" jika error,
     //    karena transaksi & pengurangan stok di atas sudah sukses tercatat di server.
-    refreshResiPreview().catch(()=>{});
     loadInv().catch(err => console.warn('Sinkron stok gagal (data tersimpan, hanya cache lokal yang belum segar):', err.message));
     loadTrx().catch(err => console.warn('Sinkron histori gagal (data tersimpan, hanya cache lokal yang belum segar):', err.message));
   } catch(err){
@@ -1536,7 +1524,6 @@ function refreshFormDependents(){
         Setelah itu jalankan SQL yang disertakan (<code>indesa_supabase.sql</code>) di Supabase SQL Editor.
       </div>`);
     addItemRow();
-    document.getElementById('next-resi-preview').textContent = 'TRX-001';
     return;
   }
 
@@ -1553,7 +1540,6 @@ function refreshFormDependents(){
   showLoading(false);
   addItemRow();
   document.getElementById('f-tgl-pinjam').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('next-resi-preview').textContent = buildResiStr(cachedSeq);
   if(inventory.length) renderAsetPublik();
 
   /* ── FASE 2: Sync Supabase di background (tidak memblokir UI) ── */
@@ -1576,7 +1562,6 @@ function refreshFormDependents(){
     // Update UI yang sedang aktif
     renderAsetPublik();
     refreshFormDependents();
-    document.getElementById('next-resi-preview').textContent = buildResiStr(_resiSeq);
 
     // Jika tab historis sedang aktif, refresh tabelnya juga
     if(document.getElementById('tab-historis').classList.contains('active')){
