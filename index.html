@@ -208,13 +208,17 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 @media(max-width:560px){
   .item-row{grid-template-columns:1fr; gap:14px; padding:22px 16px 18px;}
   .item-row .btn-rm{width:100%; height:42px;}
+  .btn-rm-icon{display:none;}
+  .btn-rm-label{display:inline; font-size:13.5px; letter-spacing:.3px;}
 }
 .item-row .field{margin-bottom:0;}
 .item-row .field select, .item-row .field input, .item-row .field .combo-trigger{padding:11px 2px; font-size:15.5px;}
 .btn-rm{
   height:42px; border:1px solid var(--brick); background:var(--brick-bg); color:var(--brick);
   border-radius:6px; cursor:pointer; font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; gap:6px;
 }
+.btn-rm-label{display:none;}
 .btn-add-item{
   background:none; border:1px dashed var(--line-strong); color:var(--navy);
   font-weight:700; font-size:13.5px; padding:14px; width:100%; border-radius:6px;
@@ -1215,7 +1219,10 @@ function addItemRow(){
       <label>Jumlah Barang</label>
       <input type="number" min="1" value="1" class="row-qty">
     </div>
-    <button type="button" class="btn-rm" onclick="removeItemRow('${rowId}')" title="Hapus baris">✕</button>
+    <button type="button" class="btn-rm" onclick="removeItemRow('${rowId}')" title="Hapus baris">
+      <span class="btn-rm-icon" aria-hidden="true">✕</span>
+      <span class="btn-rm-label">Hapus Barang</span>
+    </button>
   `;
   itemRowsEl.appendChild(row);
 }
