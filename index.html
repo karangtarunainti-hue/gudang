@@ -1023,11 +1023,27 @@ const itemRowsEl = document.getElementById('item-rows');
 function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
 
 function invOptionsHTML(selectedId){
-  return inventory.filter(i=>i.isActive).map(i=>{
-    const disabled = i.tersedia <= 0 ? 'disabled' : '';
-    const label = `${i.nama} (${i.gudang} — Sisa ${i.tersedia})`;
-    const sel = i.id===selectedId ? 'selected' : '';
-    return `<option value="${i.id}" ${sel} ${disabled}>${label}${i.tersedia<=0?' — Habis':''}</option>`;
+  const aktif = inventory.filter(i=>i.isActive);
+
+  // kelompokkan barang per gudang
+  const byGudang = {};
+  aktif.forEach(i=>{
+    if(!byGudang[i.gudang]) byGudang[i.gudang] = [];
+    byGudang[i.gudang].push(i);
+  });
+
+  // urutkan nama gudang A-Z, lalu nama barang A-Z di dalam tiap gudang
+  const gudangNames = Object.keys(byGudang).sort((a,b)=>a.localeCompare(b,'id'));
+
+  return gudangNames.map(gudang=>{
+    const items = byGudang[gudang].slice().sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
+    const optionsHTML = items.map(i=>{
+      const disabled = i.tersedia <= 0 ? 'disabled' : '';
+      const label = `${i.nama} (Sisa ${i.tersedia})`;
+      const sel = i.id===selectedId ? 'selected' : '';
+      return `<option value="${i.id}" ${sel} ${disabled}>${label}${i.tersedia<=0?' — Habis':''}</option>`;
+    }).join('');
+    return `<optgroup label="${escapeHtml(gudang)}">${optionsHTML}</optgroup>`;
   }).join('');
 }
 
