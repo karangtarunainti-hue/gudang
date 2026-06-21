@@ -607,7 +607,7 @@ footer.note{max-width:1100px; margin:0 auto; padding:0 18px 30px; font-size:11.5
       <div class="toolbar">
         <div>
           <h2 style="font-size:17px; margin:0;">Log Peminjaman</h2>
-          <p class="muted" style="margin-top:2px;">Tap status untuk mengubah keadaan transaksi.</p>
+          <p class="muted" style="margin-top:2px;" id="hist-subtitle">Login sebagai admin untuk mengubah status transaksi.</p>
         </div>
         <div class="toolbar-actions">
           <div class="search hist-search-wrap">
@@ -808,6 +808,7 @@ document.getElementById('form-admin-pin').addEventListener('submit', async funct
     adminUnlocked = true;
     sessionStorage.setItem('sima_admin_unlocked', '1');
     showAdminTab();
+    renderHistorisTable(); // refresh pill → dropdown
     showToast('Akses admin dibuka.');
   } else {
     document.getElementById('admin-pin-error').style.display = 'block';
@@ -820,6 +821,7 @@ function lockAdmin(){
   adminUnlocked = false;
   sessionStorage.removeItem('sima_admin_unlocked');
   showAdminTab();
+  renderHistorisTable(); // refresh dropdown → pill
 }
 
 async function changeAdminPin(){
@@ -1192,6 +1194,14 @@ async function deleteStok(id){
    HISTORIS
    ============================================================ */
 function renderHistorisTable(){
+  // update subtitle sesuai status admin
+  const subtitle = document.getElementById('hist-subtitle');
+  if(subtitle){
+    subtitle.textContent = adminUnlocked
+      ? 'Tap status untuk mengubah keadaan transaksi.'
+      : '🔒 Login sebagai admin untuk mengubah status transaksi.';
+  }
+
   const q            = (document.getElementById('hist-search').value || '').toLowerCase();
   const statusFilter = document.getElementById('hist-filter').value;
   const filtered     = transactions.filter(t=>{
@@ -1202,6 +1212,8 @@ function renderHistorisTable(){
   const tbody   = document.getElementById('hist-tbody');
   const emptyEl = document.getElementById('hist-empty');
 
+  const statusLabel = {'aktif':'⏳ Aktif', 'selesai':'✅ Selesai', 'bermasalah':'⚠️ Bermasalah'};
+
   if(filtered.length === 0){
     tbody.innerHTML = '';
     emptyEl.style.display = 'block';
@@ -1209,6 +1221,16 @@ function renderHistorisTable(){
     emptyEl.style.display = 'none';
     tbody.innerHTML = filtered.map(t=>{
       const itemsText = t.items.map(it=>`${it.qty}× ${escapeHtml(it.nama)} <span style="color:var(--ink-soft); font-weight:600;">[${escapeHtml(it.gudang)}]</span>`).join('<br>');
+
+      // Kolom status: dropdown jika admin, pill statis jika bukan
+      const statusCell = adminUnlocked
+        ? `<select class="pill ${t.status}" style="border:1.5px dashed currentColor; cursor:pointer; appearance:none; font-family:inherit;" onchange="changeStatus('${t.id}', this.value)">
+            <option value="aktif" ${t.status==='aktif'?'selected':''}>⏳ Aktif</option>
+            <option value="selesai" ${t.status==='selesai'?'selected':''}>✅ Selesai</option>
+            <option value="bermasalah" ${t.status==='bermasalah'?'selected':''}>⚠️ Bermasalah</option>
+           </select>`
+        : `<span class="pill ${t.status}" title="Hanya admin yang dapat mengubah status">${statusLabel[t.status] || t.status}</span>`;
+
       return `
       <tr>
         <td data-label="Peminjam">
@@ -1217,19 +1239,19 @@ function renderHistorisTable(){
         </td>
         <td data-label="Barang &amp; Gudang" style="white-space:normal; min-width:200px;">${itemsText}</td>
         <td data-label="Tanggal" class="muted" style="white-space:normal; min-width:120px;">${formatDate(t.tglPinjam)} → ${formatDate(t.tglKembali)}</td>
-        <td data-label="Status" style="text-align:center;">
-          <select class="pill ${t.status}" style="border:1.5px dashed currentColor; cursor:pointer; appearance:none; font-family:inherit;" onchange="changeStatus('${t.id}', this.value)">
-            <option value="aktif" ${t.status==='aktif'?'selected':''}>⏳ Aktif</option>
-            <option value="selesai" ${t.status==='selesai'?'selected':''}>✅ Selesai</option>
-            <option value="bermasalah" ${t.status==='bermasalah'?'selected':''}>⚠️ Bermasalah</option>
-          </select>
-        </td>
+        <td data-label="Status" style="text-align:center;">${statusCell}</td>
       </tr>`;
     }).join('');
   }
 }
 
 async function changeStatus(id, newStatus){
+  // Blokir jika bukan admin — double-check di JS layer
+  if(!adminUnlocked){
+    showToast('🔒 Hanya admin yang dapat mengubah status peminjaman.');
+    renderHistorisTable(); // reset tampilan dropdown
+    return;
+  }
   const t = transactions.find(x=>x.id===id);
   if(!t) return;
   const wasActive     = t.status === 'aktif' || t.status === 'bermasalah';
