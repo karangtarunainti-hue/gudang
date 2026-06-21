@@ -194,7 +194,7 @@ main{max-width:1100px; margin:0 auto; padding:26px 18px 60px;}
 .combo-stok-badge.stok-habis{ background:var(--brick-bg); color:var(--brick); }
 
 .item-row{
-  display:grid; grid-template-columns:1fr 110px 42px; gap:14px;
+  display:grid; grid-template-columns:1fr 150px 42px; gap:14px;
   align-items:end; padding:18px 18px 20px; background:var(--paper-dim);
   border:1px solid var(--line); border-radius:6px; margin-bottom:16px;
   position:relative;
@@ -1212,7 +1212,7 @@ function addItemRow(){
       </div>
     </div>
     <div class="field">
-      <label>Jml</label>
+      <label>Jumlah Barang</label>
       <input type="number" min="1" value="1" class="row-qty">
     </div>
     <button type="button" class="btn-rm" onclick="removeItemRow('${rowId}')" title="Hapus baris">✕</button>
