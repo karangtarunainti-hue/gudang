@@ -1513,12 +1513,12 @@ document.getElementById('form-stok').addEventListener('submit', async function(e
       });
       const item = inventory.find(i=>i.id===id);
       Object.assign(item, {nama, gudang, total, tersedia, lastUpdated: now});
-      showToast('Data aset diperbarui.');
+      showToast('✅ Data sudah tersimpan.');
     } else {
       // insert new
       const newId = uid();
       await sbPost('inventory', { id: newId, nama, gudang, total, tersedia, last_updated: now });
-      inventory.push({ id: newId, nama, gudang, total, tersedia, lastUpdated: now });
+      inventory.push({ id: newId, nama, gudang, total, tersedia, lastUpdated: now, isActive: true });
       showToast('Aset baru ditambahkan.');
     }
     showLoading(false);
